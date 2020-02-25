@@ -128,7 +128,7 @@ CaloHit::~CaloHit()
 
 StatusCode CaloHit::AlterMetadata(const object_creation::CaloHit::Metadata &metadata)
 {
-    if (!metadata.m_PropertiesToAdd.empty() || !metadata.m_propertiesToRemove.empty())
+    if (!metadata.m_propertiesToAdd.empty() || !metadata.m_propertiesToRemove.empty())
     {
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->UpdatePropertiesMap(metadata));
     }
