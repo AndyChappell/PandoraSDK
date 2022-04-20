@@ -1,0 +1,11 @@
+add_subdirectory(Api)
+add_subdirectory(Geometry)
+add_subdirectory(Helpers)
+add_subdirectory(Managers)
+add_subdirectory(Objects)
+add_subdirectory(Pandora)
+add_subdirectory(Persistency)
+add_subdirectory(Plugins)
+add_subdirectory(Templates)
+add_subdirectory(Xml)
+

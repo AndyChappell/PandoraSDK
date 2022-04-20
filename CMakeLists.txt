@@ -1,6 +1,7 @@
 # cmake file for building PandoraSDK
 #-------------------------------------------------------------------------------------------------------------------------------------------
 cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
+cmake_policy(SET CMP0076 NEW)
 
 if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
     message(FATAL_ERROR "PandoraSDK requires an out-of-source build.")
@@ -8,11 +9,9 @@ endif()
 
 project(PandoraSDK VERSION 03.04.01 LANGUAGES CXX)
 
-# - Collect sources - not ideal because you have to keep running CMake to pick up changes
-file(GLOB_RECURSE PANDORA_SDK_SRCS RELATIVE ${PROJECT_SOURCE_DIR} "src/*.cc")
-
-add_library(PandoraSDK SHARED ${PANDORA_SDK_SRCS})
+add_library(PandoraSDK SHARED "")
 add_library(Pandora::SDK ALIAS PandoraSDK)
+add_subdirectory(src)
 
 target_include_directories(PandoraSDK
     PUBLIC include
