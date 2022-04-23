@@ -24,46 +24,16 @@
 # @author Jan Engels, Desy
 ##############################################################################
 
-SET( PandoraSDK_ROOT "@CMAKE_INSTALL_PREFIX@" )
-SET( PandoraSDK_VERSION "@PandoraSDK_VERSION@" )
-
+set( PandoraSDK_ROOT "@CMAKE_INSTALL_PREFIX@" )
+set( PandoraSDK_VERSION "@PandoraSDK_VERSION@" )
 
 # ---------- include dirs -----------------------------------------------------
 # do not store find results in cache
-SET( PandoraSDK_INCLUDE_DIRS PandoraSDK_INCLUDE_DIRS-NOTFOUND )
-MARK_AS_ADVANCED( PandoraSDK_INCLUDE_DIRS )
+set( PandoraSDK_INCLUDE_DIRS "@CONF_INCLUDE_DIRS@" )
 
-FIND_PATH( PandoraSDK_INCLUDE_DIRS
-	NAMES Pandora/Pandora.h
-	PATHS ${PandoraSDK_ROOT}/include
-	NO_DEFAULT_PATH
-)
+#include( "${PandoraSDK_ROOT}/lib/cmake/PandoraSDKLibDeps.cmake" )
 
+set(PanodraSDK_LIBRARIES PandoraSDK)
 
-
-# ---------- libraries --------------------------------------------------------
-INCLUDE( "@PANDORA_CMAKE_MODULES_PATH@/MacroCheckPackageLibs.cmake" )
-
-# only standard libraries should be passed as arguments to CHECK_PACKAGE_LIBS
-# additional components are set by cmake in variable PKG_FIND_COMPONENTS
-# first argument should be the package name
-CHECK_PACKAGE_LIBS( PandoraSDK PandoraSDK )
-
-
-
-
-# ---------- libraries dependencies -------------------------------------------
-# this sets PandoraSDK_${COMPONENT}_LIB_DEPENDS variables
-INCLUDE( "${PandoraSDK_ROOT}/lib/cmake/PandoraSDKLibDeps.cmake" )
- 
-
-
-
-# ---------- final checking ---------------------------------------------------
-INCLUDE( FindPackageHandleStandardArgs )
-# set PANDORASDKNEW_FOUND to TRUE if all listed variables are TRUE and not empty
-# PandoraSDK_COMPONENT_VARIABLES will be set if FIND_PACKAGE is called with REQUIRED argument
-FIND_PACKAGE_HANDLE_STANDARD_ARGS( PandoraSDK DEFAULT_MSG PandoraSDK_ROOT PandoraSDK_INCLUDE_DIRS PandoraSDK_LIBRARIES ${PandoraSDK_COMPONENT_VARIABLES} )
-
-SET( PandoraSDK_FOUND ${PANDORASDKNEW_FOUND} )
+set( PandoraSDK_FOUND TRUE )
 

@@ -10,7 +10,7 @@ set(PandoraSDK_VERSION 03.04.01)
 
 project(PandoraSDK VERSION ${PandoraSDK_VERSION} LANGUAGES CXX)
 
-include(PandoraCMakeSettings)
+#include(PandoraCMakeSettings)
 
 # - Collect sources - not ideal because you have to keep running CMake to pick up changes
 file(GLOB_RECURSE PANDORA_SDK_SRCS RELATIVE ${PROJECT_SOURCE_DIR} "src/*.cc")
@@ -47,7 +47,7 @@ if( EXISTS "${PROJECT_SOURCE_DIR}/cmake/PandoraSDKConfig.cmake.in" )
         "${PROJECT_SOURCE_DIR}/cmake/PandoraSDKConfig.cmake.in"
         "${PROJECT_BINARY_DIR}/PandoraSDKConfig.cmake" @ONLY
     )
-    install(FILES "${PROJECT_BINARY_DIR}/PandoraSDKConfig.cmake" DESTINATION .)
+    install(FILES "${PROJECT_BINARY_DIR}/PandoraSDKConfig.cmake" DESTINATION lib/cmake)
 endif()
 
 if( EXISTS "${PROJECT_SOURCE_DIR}/cmake/PandoraSDKConfigVersion.cmake.in" )
@@ -55,7 +55,7 @@ if( EXISTS "${PROJECT_SOURCE_DIR}/cmake/PandoraSDKConfigVersion.cmake.in" )
         "${PROJECT_SOURCE_DIR}/cmake/PandoraSDKConfigVersion.cmake.in"
         "${PROJECT_BINARY_DIR}/PandoraSDKConfigVersion.cmake" @ONLY
     )
-    install(FILES "${PROJECT_BINARY_DIR}//PandoraSDKConfigVersion.cmake" DESTINATION .)
+    install(FILES "${PROJECT_BINARY_DIR}/PandoraSDKConfigVersion.cmake" DESTINATION lib/cmake)
 endif()
 
 if( EXISTS "${PROJECT_SOURCE_DIR}/cmake/PandoraSDKLibDeps.cmake.in" )
