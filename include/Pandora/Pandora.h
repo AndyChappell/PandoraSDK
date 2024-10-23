@@ -71,7 +71,7 @@ public:
      * 
      *  @return the address of the pandora event instance
      */
-    const Event *GetEvent() const;
+    Event *GetEvent() const;
 
     /**
      *  @brief  Get the pandora settings instance
