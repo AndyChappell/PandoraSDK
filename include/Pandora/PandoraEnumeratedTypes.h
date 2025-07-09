@@ -71,6 +71,9 @@ enum HitType
     TPC_VIEW_V,
     TPC_VIEW_W,
     TPC_3D,
+    OPTICAL_SIPM,
+    OPTICAL_TRAP,
+    OPTICAL_TPC,
     HIT_CUSTOM
 };
 
