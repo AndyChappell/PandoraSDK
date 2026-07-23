@@ -13,6 +13,7 @@
 
 #include <array>
 #include <utility>
+#include <vector>
 
 namespace pandora
 {
@@ -26,6 +27,7 @@ public:
     typedef std::pair<unsigned int, unsigned int> ChannelInterval;
     typedef std::pair<HitType, ChannelInterval> ViewChannelInterval;
     typedef std::array<ViewChannelInterval, 2> ViewChannelIntervalArray;
+    typedef std::vector<LArReadoutChannel> ReadoutChannels;
 
     /**
      *  @brief  Constructor

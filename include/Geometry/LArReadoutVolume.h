@@ -21,7 +21,7 @@ namespace pandora
 class LArReadoutVolume
 {
 public:
-    typedef std::vector<LArReadoutUnit> ReadoutUnits;
+    typedef std::vector<LArReadoutVolume> ReadoutVolumes;
 
     /**
      *  @brief  Constructor
@@ -32,7 +32,7 @@ public:
      *  @param  readoutUnits the collection of readout units associated with this readout volume
      */
     LArReadoutVolume(unsigned int id, const pandora::CartesianVector &center, const pandora::CartesianVector &size,
-        const ReadoutUnits &readoutUnits);
+        const LArReadoutUnit::ReadoutUnits &readoutUnits);
 
     /**
      *  @brief  Destructor
@@ -65,13 +65,13 @@ public:
      *
      *  @return the readout units associated with the readout volume
      */
-    const ReadoutUnits &GetReadoutUnits() const;
+    const LArReadoutUnit::ReadoutUnits &GetReadoutUnits() const;
 
 private:
     unsigned int m_id;                  ///< The id of the readout volume
     pandora::CartesianVector m_center;  ///< The center of the readout volume (x, y, z)
     pandora::CartesianVector m_size;    ///< The size of the readout volume (x, y, z)
-    ReadoutUnits m_readoutUnits;        ///< The collection of readout units associated with this readout volume
+    LArReadoutUnit::ReadoutUnits m_readoutUnits;    ///< The collection of readout units associated with this readout volume
 };
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -97,7 +97,7 @@ inline const pandora::CartesianVector &LArReadoutVolume::GetSize() const
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-inline const LArReadoutVolume::ReadoutUnits &LArReadoutVolume::GetReadoutUnits() const
+inline const LArReadoutUnit::ReadoutUnits &LArReadoutVolume::GetReadoutUnits() const
 {
     return m_readoutUnits;
 }

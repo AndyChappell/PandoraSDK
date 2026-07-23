@@ -12,7 +12,7 @@ namespace pandora
 {
 
 LArReadoutVolume::LArReadoutVolume(unsigned int id, const pandora::CartesianVector &center, const pandora::CartesianVector &size,
-    const ReadoutUnits &readoutUnits) :
+    const LArReadoutUnit::ReadoutUnits &readoutUnits) :
     m_id(id),
     m_center(center),
     m_size(size),

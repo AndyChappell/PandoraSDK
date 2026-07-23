@@ -24,7 +24,7 @@ namespace pandora
 class LArReadoutUnit
 {
 public:
-    typedef std::vector<LArReadoutChannel> ReadoutChannels;
+    typedef std::vector<LArReadoutUnit> ReadoutUnits;
 
     /**
      *  @brief  Constructor
@@ -33,7 +33,7 @@ public:
      *  @param  view the view of the readout unit
      *  @param  readoutChannels the collection of readout channels associated with this readout unit
      */
-    LArReadoutUnit(unsigned int id, pandora::HitType view, const ReadoutChannels &readoutChannels);
+    LArReadoutUnit(unsigned int id, pandora::HitType view, const LArReadoutChannel::ReadoutChannels &readoutChannels);
 
     /**
      *  @brief  Destructor
@@ -59,12 +59,12 @@ public:
      *
      *  @return the readout channels associated with the readout unit
      */
-    const ReadoutChannels &GetReadoutChannels() const;
+    const LArReadoutChannel::ReadoutChannels &GetReadoutChannels() const;
 
 private:
     unsigned int m_id;                  ///< The id of the readout unit
     pandora::HitType m_view;            ///< The view of the readout unit
-    ReadoutChannels m_readoutChannels;  ///< The collection of readout channels associated with this readout unit
+    LArReadoutChannel::ReadoutChannels m_readoutChannels;   ///< The collection of readout channels associated with this readout unit
 };
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -83,7 +83,7 @@ inline pandora::HitType LArReadoutUnit::GetView() const
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-inline const LArReadoutUnit::ReadoutChannels &LArReadoutUnit::GetReadoutChannels() const
+inline const LArReadoutChannel::ReadoutChannels &LArReadoutUnit::GetReadoutChannels() const
 {
     return m_readoutChannels;
 }

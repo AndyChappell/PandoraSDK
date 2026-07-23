@@ -11,7 +11,7 @@
 namespace pandora
 {
 
-LArReadoutUnit::LArReadoutUnit(unsigned int id, HitType view, const ReadoutChannels &readoutChannels) :
+LArReadoutUnit::LArReadoutUnit(unsigned int id, HitType view, const LArReadoutChannel::ReadoutChannels &readoutChannels) :
     m_id(id),
     m_view(view),
     m_readoutChannels(readoutChannels)
