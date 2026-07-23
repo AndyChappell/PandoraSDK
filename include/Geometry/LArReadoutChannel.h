@@ -11,7 +11,7 @@
 
 #include "Pandora/PandoraEnumeratedTypes.h"
 
-#include <unordered_map>
+#include <array>
 #include <utility>
 
 namespace pandora
@@ -24,21 +24,22 @@ class LArReadoutChannel
 {
 public:
     typedef std::pair<unsigned int, unsigned int> ChannelInterval;
-    typedef std::unordered_map<pandora::HitType, ChannelInterval> ViewChannelIntervalMap;
+    typedef std::pair<HitType, ChannelInterval> ViewChannelInterval;
+    typedef std::array<ViewChannelInterval, 2> ViewChannelIntervalArray;
 
     /**
      *  @brief  Constructor
      *
      *  @param  id the readout unit id (e,g, plane id in a horizontal drift TPC)
-     *  @param  channelIntervalMap a map, keyed by view, describing the channel id interval for channels in other views that this channel can
+     *  @param  channelIntervalArray an array describing the channel id interval for channels in other views that this channel can
      *          'intersect'
      */
-    LArReadoutChannel(unsigned int id, const ViewChannelIntervalMap &channelIntervalMap);
+    LArReadoutChannel(unsigned int id, const ViewChannelIntervalArray &channelIntervalArray);
 
     /**
      *  @brief  Destructor
      */
-    virtual ~LArReadoutChannel();
+    ~LArReadoutChannel();
 
     /**
      *  @brief  Get the id of the readout unit.
@@ -53,13 +54,13 @@ public:
      *  @param  view the view for which to retrieve the channel interval
      *
      *  @return the channel interval [min, max] for the specified view
-     *  @throws StatusCodeException if the specified view is not present in the channel interval map
+     *  @throws StatusCodeException if the specified view is not present in the channel interval array
      */
     const ChannelInterval &GetChannelInterval(const pandora::HitType view) const;
 
 private:
-    unsigned int m_id;                              ///< The id of the readout volume
-    ViewChannelIntervalMap m_channelIntervalMap;    ///< A map, keyed by view, describing the channel id 'intersection' interval
+    unsigned int m_id;                                  ///< The id of the readout channel
+    ViewChannelIntervalArray m_channelIntervalArray;    ///< An array describing the channel id 'intersection' intervals for each view
 };
 
 //------------------------------------------------------------------------------------------------------------------------------------------

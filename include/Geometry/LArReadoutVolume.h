@@ -21,7 +21,7 @@ namespace pandora
 class LArReadoutVolume
 {
 public:
-    typedef std::vector<const LArReadoutUnit *> ReadoutUnits;
+    typedef std::vector<LArReadoutUnit> ReadoutUnits;
 
     /**
      *  @brief  Constructor
@@ -37,7 +37,7 @@ public:
     /**
      *  @brief  Destructor
      */
-    virtual ~LArReadoutVolume();
+    ~LArReadoutVolume();
 
     /**
      *  @brief  Get the id of the readout volume.

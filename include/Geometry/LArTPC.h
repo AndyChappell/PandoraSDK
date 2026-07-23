@@ -27,7 +27,7 @@ template<typename T, typename S> class PandoraObjectFactory;
 class LArTPC
 {
 public:
-    typedef std::vector<const LArReadoutVolume *> ReadoutVolumes;
+    typedef std::vector<LArReadoutVolume> ReadoutVolumes;
 
     /**
      *  @brief  Get the lar volume id, uniquely specifying the lar tpc

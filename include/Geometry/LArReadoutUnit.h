@@ -24,7 +24,7 @@ namespace pandora
 class LArReadoutUnit
 {
 public:
-    typedef std::vector<const LArReadoutChannel *> ReadoutChannels;
+    typedef std::vector<LArReadoutChannel> ReadoutChannels;
 
     /**
      *  @brief  Constructor
@@ -38,7 +38,7 @@ public:
     /**
      *  @brief  Destructor
      */
-    virtual ~LArReadoutUnit();
+    ~LArReadoutUnit();
 
     /**
      *  @brief  Get the id of the readout unit.
@@ -62,7 +62,7 @@ public:
     const ReadoutChannels &GetReadoutChannels() const;
 
 private:
-    unsigned int m_id;                  ///< The id of the readout volume
+    unsigned int m_id;                  ///< The id of the readout unit
     pandora::HitType m_view;            ///< The view of the readout unit
     ReadoutChannels m_readoutChannels;  ///< The collection of readout channels associated with this readout unit
 };

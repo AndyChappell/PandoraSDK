@@ -13,9 +13,9 @@
 namespace pandora
 {
 
-LArReadoutChannel::LArReadoutChannel(unsigned int id, const ViewChannelIntervalMap &channelIntervalMap) :
+LArReadoutChannel::LArReadoutChannel(unsigned int id, const ViewChannelIntervalArray &channelIntervalArray) :
     m_id(id),
-    m_channelIntervalMap(channelIntervalMap)
+    m_channelIntervalArray(channelIntervalArray)
 {
 }
 
@@ -23,12 +23,13 @@ LArReadoutChannel::LArReadoutChannel(unsigned int id, const ViewChannelIntervalM
 
 const LArReadoutChannel::ChannelInterval &LArReadoutChannel::GetChannelInterval(const pandora::HitType view) const
 {
-    ViewChannelIntervalMap::const_iterator iter{m_channelIntervalMap.find(view)};
+    for (const auto &[v, interval] : m_channelIntervalArray)
+    {
+        if (v == view)
+            return interval;
+    }
 
-    if (m_channelIntervalMap.end() == iter)
-        throw StatusCodeException(STATUS_CODE_NOT_FOUND);
-
-    return iter->second;
+    throw StatusCodeException(STATUS_CODE_NOT_FOUND);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
