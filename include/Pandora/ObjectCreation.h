@@ -223,8 +223,8 @@ class LArReadoutVolumeParameters
 {
 public:
     unsigned int m_id;                                              ///< The readout volume id
-    pandora::CartesianVector m_center;                              ///< The center of the readout volume
-    pandora::CartesianVector m_size;                                ///< The size of the readout volume
+    pandora::CartesianVector m_center{0.f, 0.f, 0.f};               ///< The center of the readout volume
+    pandora::CartesianVector m_size{0.f, 0.f, 0.f};                 ///< The size of the readout volume
     LArReadoutUnitParametersVector m_readoutUnitParametersVector;   ///< The readout units belonging to this readout volume
 };
 
