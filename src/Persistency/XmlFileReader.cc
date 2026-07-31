@@ -287,7 +287,7 @@ StatusCode XmlFileReader::ReadComponentFields(unsigned int &schemaVersion, Field
     if (!m_pCurrentXmlElement)
         return STATUS_CODE_FAILURE;
 
-    // Read schemaVersion attribute (absent in legacy files — treat as 0).
+    // Read schemaVersion attribute.
     schemaVersion = 0;
     const char *const pAttr = m_pCurrentXmlElement->Attribute("schemaVersion");
 
@@ -376,9 +376,6 @@ StatusCode XmlFileReader::ReadNextComponent([[maybe_unused]] const ContainerId e
 
     // Dispatch by element name. Unknown names are logged and skipped.
     // Global header components
-    if ("Version" == elementName)
-        return this->ReadVersion(fields);
-
     if ("Metadata" == elementName)
         return this->ReadMetadata(fields);
 
@@ -478,31 +475,6 @@ StatusCode XmlFileReader::ReadNextEventComponent()
 // Global header deserialisers
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-StatusCode XmlFileReader::ReadVersion(const FieldMap &fields)
-{
-    if (HEADER_CONTAINER != m_containerId)
-        return STATUS_CODE_FAILURE;
-
-    // The new writer stores MajorVersion / MinorVersion as XML attributes on
-    // the <Version> element rather than child elements, so they won't appear
-    // in the FieldMap (which is built from child elements only).
-    // Read them directly from the element attributes instead.
-    if (m_pCurrentXmlElement)
-    {
-        const char *pMajor = m_pCurrentXmlElement->Attribute("MajorVersion");
-        const char *pMinor = m_pCurrentXmlElement->Attribute("MinorVersion");
-
-        if (pMajor) { try { m_fileMajorVersion = static_cast<unsigned int>(std::stoul(pMajor)); } catch (...) {} }
-        if (pMinor) { try { m_fileMinorVersion = static_cast<unsigned int>(std::stoul(pMinor)); } catch (...) {} }
-    }
-
-    // Suppress unused-parameter warning; the FieldMap is empty for Version.
-    (void)fields;
-    return STATUS_CODE_SUCCESS;
-}
-
-//------------------------------------------------------------------------------------------------------------------------------------------
-
 StatusCode XmlFileReader::ReadMetadata(const FieldMap &fields)
 {
     if (HEADER_CONTAINER != m_containerId)
@@ -572,7 +544,7 @@ StatusCode XmlFileReader::ReadSubDetector(const FieldMap &fields)
 
     try
     {
-        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pSubDetectorFactory->Read(*pParameters, fields)));
+        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pSubDetectorFactory->Read(*pParameters, fields));
 
         pParameters->m_subDetectorName    = fields.GetOrDefault<std::string>("subDetectorName",    std::string());
         pParameters->m_subDetectorType    = fields.GetOrDefault<SubDetectorType>("subDetectorType",SUB_DETECTOR_OTHER);
@@ -619,7 +591,7 @@ StatusCode XmlFileReader::ReadLArTPC(const FieldMap &fields)
 
     try
     {
-        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pLArTPCFactory->Read(*pParameters, fields)));
+        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pLArTPCFactory->Read(*pParameters, fields));
 
         pParameters->m_larTPCVolumeId     = fields.GetOrDefault<unsigned int>("larTPCVolumeId",  0u);
         pParameters->m_centerX            = fields.GetOrDefault<float>("centerX",                0.f);
@@ -657,7 +629,7 @@ StatusCode XmlFileReader::ReadLineGap(const FieldMap &fields)
 
     try
     {
-        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pLineGapFactory->Read(*pParameters, fields)));
+        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pLineGapFactory->Read(*pParameters, fields));
 
         pParameters->m_lineGapType = fields.GetOrDefault<LineGapType>("lineGapType", TPC_WIRE_GAP_VIEW_U);
         pParameters->m_lineStartX  = fields.GetOrDefault<float>("lineStartX",        0.f);
@@ -685,7 +657,7 @@ StatusCode XmlFileReader::ReadBoxGap(const FieldMap &fields)
 
     try
     {
-        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pBoxGapFactory->Read(*pParameters, fields)));
+        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pBoxGapFactory->Read(*pParameters, fields));
 
         pParameters->m_vertex = fields.GetOrDefault<CartesianVector>("vertex", CartesianVector(0.f, 0.f, 0.f));
         pParameters->m_side1  = fields.GetOrDefault<CartesianVector>("side1",  CartesianVector(0.f, 0.f, 0.f));
@@ -712,7 +684,7 @@ StatusCode XmlFileReader::ReadConcentricGap(const FieldMap &fields)
 
     try
     {
-        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pConcentricGapFactory->Read(*pParameters, fields)));
+        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pConcentricGapFactory->Read(*pParameters, fields));
 
         pParameters->m_minZCoordinate     = fields.GetOrDefault<float>("minZCoordinate",             0.f);
         pParameters->m_maxZCoordinate     = fields.GetOrDefault<float>("maxZCoordinate",             0.f);
@@ -745,7 +717,7 @@ StatusCode XmlFileReader::ReadCaloHit(const FieldMap &fields)
 
     try
     {
-        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pCaloHitFactory->Read(*pParameters, fields)));
+        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pCaloHitFactory->Read(*pParameters, fields));
 
         pParameters->m_cellGeometry            = fields.GetOrDefault<CellGeometry>("cellGeometry",           RECTANGULAR);
         pParameters->m_positionVector          = fields.GetOrDefault<CartesianVector>("positionVector",      CartesianVector(0.f,0.f,0.f));
@@ -788,7 +760,7 @@ StatusCode XmlFileReader::ReadTrack(const FieldMap &fields)
 
     try
     {
-        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pTrackFactory->Read(*pParameters, fields)));
+        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pTrackFactory->Read(*pParameters, fields));
 
         pParameters->m_d0                      = fields.GetOrDefault<float>("d0",                             0.f);
         pParameters->m_z0                      = fields.GetOrDefault<float>("z0",                             0.f);
@@ -826,7 +798,7 @@ StatusCode XmlFileReader::ReadMCParticle(const FieldMap &fields)
 
     try
     {
-        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pMCParticleFactory->Read(*pParameters, fields)));
+        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pMCParticleFactory->Read(*pParameters, fields));
 
         pParameters->m_energy         = fields.GetOrDefault<float>("energy",                               0.f);
         pParameters->m_momentum       = fields.GetOrDefault<CartesianVector>("momentum",                   CartesianVector(0.f,0.f,0.f));

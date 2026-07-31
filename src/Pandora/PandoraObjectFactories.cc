@@ -31,7 +31,6 @@ typename PandoraObjectFactory<PARAMETERS, OBJECT>::Parameters *PandoraObjectFact
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-// CHANGE: generation-2 Read — no extra fields for SDK default factory.
 template <typename PARAMETERS, typename OBJECT>
 StatusCode PandoraObjectFactory<PARAMETERS, OBJECT>::Read(Parameters &/*parameters*/, const FieldMap &/*fields*/) const
 {
@@ -40,7 +39,6 @@ StatusCode PandoraObjectFactory<PARAMETERS, OBJECT>::Read(Parameters &/*paramete
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-// CHANGE: generation-2 Write — no extra fields for SDK default factory.
 template <typename PARAMETERS, typename OBJECT>
 StatusCode PandoraObjectFactory<PARAMETERS, OBJECT>::Write(const Object *const /*pObject*/, FieldMap &/*fields*/) const
 {
@@ -49,25 +47,6 @@ StatusCode PandoraObjectFactory<PARAMETERS, OBJECT>::Write(const Object *const /
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-// Generation-1 Read — unchanged from original.
-template <typename PARAMETERS, typename OBJECT>
-StatusCode PandoraObjectFactory<PARAMETERS, OBJECT>::Read(Parameters &/*parameters*/, FileReader &/*fileReader*/) const
-{
-    return STATUS_CODE_SUCCESS;
-}
-
-//------------------------------------------------------------------------------------------------------------------------------------------
-
-// Generation-1 Write — unchanged from original.
-template <typename PARAMETERS, typename OBJECT>
-StatusCode PandoraObjectFactory<PARAMETERS, OBJECT>::Write(const Object *const /*pObject*/, FileWriter &/*fileWriter*/) const
-{
-    return STATUS_CODE_SUCCESS;
-}
-
-//------------------------------------------------------------------------------------------------------------------------------------------
-
-// Create — unchanged from original.
 template <typename PARAMETERS, typename OBJECT>
 StatusCode PandoraObjectFactory<PARAMETERS, OBJECT>::Create(const PARAMETERS &parameters, const OBJECT *&pObject) const
 {
@@ -92,18 +71,17 @@ StatusCode PandoraObjectFactory<PARAMETERS, OBJECT>::Create(const PARAMETERS &pa
 //------------------------------------------------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-// Explicit instantiations — unchanged from original.
-template class PandoraObjectFactory<object_creation::CaloHit::Parameters,              object_creation::CaloHit::Object>;
-template class PandoraObjectFactory<object_creation::CaloHitFragment::Parameters,      object_creation::CaloHitFragment::Object>;
-template class PandoraObjectFactory<object_creation::Track::Parameters,                object_creation::Track::Object>;
-template class PandoraObjectFactory<object_creation::MCParticle::Parameters,           object_creation::MCParticle::Object>;
-template class PandoraObjectFactory<object_creation::Cluster::Parameters,              object_creation::Cluster::Object>;
-template class PandoraObjectFactory<object_creation::ParticleFlowObject::Parameters,   object_creation::ParticleFlowObject::Object>;
-template class PandoraObjectFactory<object_creation::Vertex::Parameters,               object_creation::Vertex::Object>;
-template class PandoraObjectFactory<object_creation::Geometry::SubDetector::Parameters,object_creation::Geometry::SubDetector::Object>;
-template class PandoraObjectFactory<object_creation::Geometry::LArTPC::Parameters,     object_creation::Geometry::LArTPC::Object>;
-template class PandoraObjectFactory<object_creation::Geometry::LineGap::Parameters,    object_creation::Geometry::LineGap::Object>;
-template class PandoraObjectFactory<object_creation::Geometry::BoxGap::Parameters,     object_creation::Geometry::BoxGap::Object>;
+template class PandoraObjectFactory<object_creation::CaloHit::Parameters,               object_creation::CaloHit::Object>;
+template class PandoraObjectFactory<object_creation::CaloHitFragment::Parameters,       object_creation::CaloHitFragment::Object>;
+template class PandoraObjectFactory<object_creation::Track::Parameters,                 object_creation::Track::Object>;
+template class PandoraObjectFactory<object_creation::MCParticle::Parameters,            object_creation::MCParticle::Object>;
+template class PandoraObjectFactory<object_creation::Cluster::Parameters,               object_creation::Cluster::Object>;
+template class PandoraObjectFactory<object_creation::ParticleFlowObject::Parameters,    object_creation::ParticleFlowObject::Object>;
+template class PandoraObjectFactory<object_creation::Vertex::Parameters,                object_creation::Vertex::Object>;
+template class PandoraObjectFactory<object_creation::Geometry::SubDetector::Parameters, object_creation::Geometry::SubDetector::Object>;
+template class PandoraObjectFactory<object_creation::Geometry::LArTPC::Parameters,      object_creation::Geometry::LArTPC::Object>;
+template class PandoraObjectFactory<object_creation::Geometry::LineGap::Parameters,     object_creation::Geometry::LineGap::Object>;
+template class PandoraObjectFactory<object_creation::Geometry::BoxGap::Parameters,      object_creation::Geometry::BoxGap::Object>;
 template class PandoraObjectFactory<object_creation::Geometry::ConcentricGap::Parameters,object_creation::Geometry::ConcentricGap::Object>;
 
 } // namespace pandora

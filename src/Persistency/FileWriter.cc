@@ -29,11 +29,8 @@
 namespace pandora
 {
 
-FileWriter::FileWriter(const pandora::Pandora &pandora, const std::string &fileName,
-    const unsigned int majorVersion, const unsigned int minorVersion) :
-    Persistency(pandora, fileName),
-    m_fileMajorVersion(majorVersion),
-    m_fileMinorVersion(minorVersion)
+FileWriter::FileWriter(const pandora::Pandora &pandora, const std::string &fileName) :
+    Persistency(pandora, fileName)
 {
 }
 
@@ -44,22 +41,6 @@ FileWriter::~FileWriter()
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-
-// CHANGE: now virtual; BinaryFileWriter overrides this to also write metadata and
-// schema registry. The base version is retained for any format that does not yet
-// support the full self-describing header (e.g. a future minimal writer).
-StatusCode FileWriter::WriteGlobalHeader()
-{
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteHeader(HEADER_CONTAINER));
-
-    if (HEADER_CONTAINER != m_containerId)
-        return STATUS_CODE_FAILURE;
-
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteVersion());
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteFooter());
-
-    return STATUS_CODE_SUCCESS;
-}
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -98,7 +79,6 @@ StatusCode FileWriter::WriteEvent(const CaloHitList &caloHitList, const TrackLis
     if (writeTrackRelationships)
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteTrackRelationships(trackList));
 
-    // CHANGE: WriteEventInformation is now always called; the old "if (m_fileMajorVersion == 2)"
     // gate is removed. In the new format every event carries run/subrun/event numbers as a
     // tagged-field component, so callers that previously relied on absence of this component
     // will simply read zeros via FieldMap::GetOrDefault when the component is present.

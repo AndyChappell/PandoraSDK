@@ -28,9 +28,8 @@ namespace pandora
 // Constructor / destructor
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-BinaryFileWriter::BinaryFileWriter(const pandora::Pandora &pandora, const std::string &fileName, const FileMode fileMode,
-    const unsigned int majorVersion, const unsigned int minorVersion) :
-    FileWriter(pandora, fileName, majorVersion, minorVersion),
+BinaryFileWriter::BinaryFileWriter(const pandora::Pandora &pandora, const std::string &fileName, const FileMode fileMode) :
+    FileWriter(pandora, fileName),
     m_containerPosition(0)
 {
     m_fileType = BINARY;
@@ -218,26 +217,9 @@ StatusCode BinaryFileWriter::WriteGlobalHeader()
     if (HEADER_CONTAINER != m_containerId)
         return STATUS_CODE_FAILURE;
 
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteVersion());
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteMetadata());
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteSchemaRegistry());
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteFooter());
-
-    return STATUS_CODE_SUCCESS;
-}
-
-//------------------------------------------------------------------------------------------------------------------------------------------
-
-StatusCode BinaryFileWriter::WriteVersion()
-{
-    if (HEADER_CONTAINER != m_containerId)
-        return STATUS_CODE_FAILURE;
-
-    // Keep the legacy plain-write for backward ident. purposes; readers that
-    // understand the new format will also see VERSION_COMPONENT here.
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteVariable(VERSION_COMPONENT));
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteVariable(m_fileMajorVersion));
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteVariable(m_fileMinorVersion));
 
     return STATUS_CODE_SUCCESS;
 }
@@ -262,12 +244,7 @@ StatusCode BinaryFileWriter::WriteMetadata()
     for (const auto &kv : m_metadata.m_userParameters)
         fields.Set(std::string("userParam:") + kv.first, kv.second);
 
-    // Use a dedicated sentinel component id for metadata so readers can
-    // identify and skip it without needing the SchemaRegistry itself.
-    // Re-use VERSION_COMPONENT as the frame type; schemaVersion = 1.
-    // (Alternatively a dedicated METADATA_COMPONENT enum value could be added
-    //  to ComponentId in a future SDK bump — this is a deliberate deferral.)
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteComponent(VERSION_COMPONENT, 1u, fields));
+    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteComponent(METADATA_COMPONENT, 1u, fields));
 
     return STATUS_CODE_SUCCESS;
 }
@@ -290,14 +267,7 @@ StatusCode BinaryFileWriter::WriteSchemaRegistry()
         fields.Set(tag, entry.m_schemaVersion);
     }
 
-    // Schema registry has its own component type; use HEADER_END_COMPONENT as a
-    // transient framing id (it will never appear alone — the end marker follows
-    // the container footer, not a field block). For robustness, a future SDK
-    // should add SCHEMA_REGISTRY_COMPONENT to the enum.
-    //
-    // For now we encode it as schemaVersion=0 under VERSION_COMPONENT so that
-    // a naïve old reader will simply see an extra VERSION_COMPONENT and skip it.
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteComponent(VERSION_COMPONENT, 0u, fields));
+    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteComponent(SCHEMA_REGISTRY_COMPONENT, 0u, fields));
 
     return STATUS_CODE_SUCCESS;
 }
@@ -312,7 +282,7 @@ StatusCode BinaryFileWriter::WriteSubDetector(const SubDetector *const pSubDetec
         return STATUS_CODE_FAILURE;
 
     FieldMap fields;
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pSubDetectorFactory->Write(pSubDetector, fields)));
+    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pSubDetectorFactory->Write(pSubDetector, fields));
 
     fields.Set("subDetectorName",      pSubDetector->GetSubDetectorName());
     fields.Set("subDetectorType",      pSubDetector->GetSubDetectorType());
@@ -354,7 +324,7 @@ StatusCode BinaryFileWriter::WriteLArTPC(const LArTPC *const pLArTPC)
         return STATUS_CODE_FAILURE;
 
     FieldMap fields;
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pLArTPCFactory->Write(pLArTPC, fields)));
+    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pLArTPCFactory->Write(pLArTPC, fields));
 
     fields.Set("larTPCVolumeId",     pLArTPC->GetLArTPCVolumeId());
     fields.Set("centerX",            pLArTPC->GetCenterX());
@@ -389,7 +359,7 @@ StatusCode BinaryFileWriter::WriteDetectorGap(const DetectorGap *const pDetector
     if (nullptr != pLineGap)
     {
         FieldMap fields;
-        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pLineGapFactory->Write(pLineGap, fields)));
+        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pLineGapFactory->Write(pLineGap, fields));
 
         fields.Set("lineGapType", pLineGap->GetLineGapType());
         fields.Set("lineStartX",  pLineGap->GetLineStartX());
@@ -402,7 +372,7 @@ StatusCode BinaryFileWriter::WriteDetectorGap(const DetectorGap *const pDetector
     else if (nullptr != pBoxGap)
     {
         FieldMap fields;
-        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pBoxGapFactory->Write(pBoxGap, fields)));
+        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pBoxGapFactory->Write(pBoxGap, fields));
 
         fields.Set("vertex", pBoxGap->GetVertex());
         fields.Set("side1",  pBoxGap->GetSide1());
@@ -414,7 +384,7 @@ StatusCode BinaryFileWriter::WriteDetectorGap(const DetectorGap *const pDetector
     else if (nullptr != pConcentricGap)
     {
         FieldMap fields;
-        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pConcentricGapFactory->Write(pConcentricGap, fields)));
+        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pConcentricGapFactory->Write(pConcentricGap, fields));
 
         fields.Set("minZCoordinate",    pConcentricGap->GetMinZCoordinate());
         fields.Set("maxZCoordinate",    pConcentricGap->GetMaxZCoordinate());
@@ -441,7 +411,7 @@ StatusCode BinaryFileWriter::WriteCaloHit(const CaloHit *const pCaloHit)
         return STATUS_CODE_FAILURE;
 
     FieldMap fields;
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pCaloHitFactory->Write(pCaloHit, fields)));
+    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pCaloHitFactory->Write(pCaloHit, fields));
 
     fields.Set("cellGeometry",            pCaloHit->GetCellGeometry());
     fields.Set("positionVector",          pCaloHit->GetPositionVector());
@@ -475,7 +445,7 @@ StatusCode BinaryFileWriter::WriteTrack(const Track *const pTrack)
         return STATUS_CODE_FAILURE;
 
     FieldMap fields;
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pTrackFactory->Write(pTrack, fields)));
+    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pTrackFactory->Write(pTrack, fields));
 
     fields.Set("d0",                     pTrack->GetD0());
     fields.Set("z0",                     pTrack->GetZ0());
@@ -504,7 +474,7 @@ StatusCode BinaryFileWriter::WriteMCParticle(const MCParticle *const pMCParticle
         return STATUS_CODE_FAILURE;
 
     FieldMap fields;
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pMCParticleFactory->Write(pMCParticle, fields)));
+    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pMCParticleFactory->Write(pMCParticle, fields));
 
     fields.Set("energy",          pMCParticle->GetEnergy());
     fields.Set("momentum",        pMCParticle->GetMomentum());

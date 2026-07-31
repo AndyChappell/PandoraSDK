@@ -283,16 +283,8 @@ StatusCode BinaryFileReader::ReadNextComponent([[maybe_unused]] const ContainerI
     switch (componentId)
     {
         // Global header components
-        case VERSION_COMPONENT:
-            // Distinguish metadata (schemaVersion=1) from schema registry (schemaVersion=0)
-            // and legacy version (schemaVersion = file version numbers directly).
-            // See BinaryFileWriter::WriteMetadata / WriteSchemaRegistry for encoding details.
-            if (1u == schemaVersion && fields.Has("producerName"))
-                return this->ReadMetadata(fields);
-            else if (0u == schemaVersion)
-                return this->ReadSchemaRegistry(fields);
-            else
-                return this->ReadVersion(fields);
+        case METADATA_COMPONENT:       return this->ReadMetadata(fields);
+        case SCHEMA_REGISTRY_COMPONENT:return this->ReadSchemaRegistry(fields);
 
         // Geometry components
         case SUB_DETECTOR_COMPONENT:  return this->ReadSubDetector(fields);
@@ -341,37 +333,6 @@ StatusCode BinaryFileReader::ReadNextEventComponent()
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Global header deserialisers
-//------------------------------------------------------------------------------------------------------------------------------------------
-
-StatusCode BinaryFileReader::ReadVersion([[maybe_unused]] const FieldMap &fields)
-{
-    if (HEADER_CONTAINER != m_containerId)
-        return STATUS_CODE_FAILURE;
-
-    // The version numbers are stored as plain WriteVariable values in the
-    // writer, not as FieldMap fields — they precede the tagged component
-    // block. They were already read into m_fileMajorVersion / m_fileMinorVersion
-    // during the initial VERSION_COMPONENT record in the old writer.
-    // In the new writer they are still written as WriteVariable before any
-    // FieldMap, so they will have been consumed by ReadComponentFields as
-    // part of the first two "fields" (the uint32 pair). We recover them here
-    // by treating the schemaVersion field value as the major version and
-    // reading minor from the FieldMap where the writer stored it, falling
-    // back to the values set in ReadComponentFields if not present.
-    //
-    // Concretely: BinaryFileWriter::WriteVersion does:
-    //   WriteVariable(VERSION_COMPONENT)   <- consumed as cid in ReadComponentFields
-    //   WriteVariable(m_fileMajorVersion)  <- consumed as sver
-    //   WriteVariable(m_fileMinorVersion)  <- consumed as numFields (== 0 for legacy)
-    // The FieldMap will therefore be empty for a legacy VERSION_COMPONENT.
-    // We already read sver as schemaVersion, so just leave the member vars as
-    // they are — they were set correctly by ReadComponentFields treating the
-    // two uint32s as sver and numFields.
-    //
-    // Nothing further to do here; the members were populated during field reading.
-    return STATUS_CODE_SUCCESS;
-}
-
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 StatusCode BinaryFileReader::ReadMetadata(const FieldMap &fields)
@@ -449,7 +410,7 @@ StatusCode BinaryFileReader::ReadSubDetector(const FieldMap &fields)
 
     try
     {
-        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pSubDetectorFactory->Read(*pParameters, fields)));
+        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pSubDetectorFactory->Read(*pParameters, fields));
 
         pParameters->m_subDetectorName    = fields.GetOrDefault<std::string>("subDetectorName",    std::string());
         pParameters->m_subDetectorType    = fields.GetOrDefault<SubDetectorType>("subDetectorType",SUB_DETECTOR_OTHER);
@@ -500,7 +461,7 @@ StatusCode BinaryFileReader::ReadLArTPC(const FieldMap &fields)
 
     try
     {
-        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pLArTPCFactory->Read(*pParameters, fields)));
+        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pLArTPCFactory->Read(*pParameters, fields));
 
         pParameters->m_larTPCVolumeId     = fields.GetOrDefault<unsigned int>("larTPCVolumeId",  0u);
         pParameters->m_centerX            = fields.GetOrDefault<float>("centerX",                0.f);
@@ -542,7 +503,7 @@ StatusCode BinaryFileReader::ReadLineGap(const FieldMap &fields)
 
     try
     {
-        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pLineGapFactory->Read(*pParameters, fields)));
+        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pLineGapFactory->Read(*pParameters, fields));
 
         pParameters->m_lineGapType = fields.GetOrDefault<LineGapType>("lineGapType", TPC_WIRE_GAP_VIEW_U);
         pParameters->m_lineStartX  = fields.GetOrDefault<float>("lineStartX",        0.f);
@@ -574,7 +535,7 @@ StatusCode BinaryFileReader::ReadBoxGap(const FieldMap &fields)
 
     try
     {
-        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pBoxGapFactory->Read(*pParameters, fields)));
+        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pBoxGapFactory->Read(*pParameters, fields));
 
         pParameters->m_vertex = fields.GetOrDefault<CartesianVector>("vertex", CartesianVector(0.f, 0.f, 0.f));
         pParameters->m_side1  = fields.GetOrDefault<CartesianVector>("side1",  CartesianVector(0.f, 0.f, 0.f));
@@ -605,7 +566,7 @@ StatusCode BinaryFileReader::ReadConcentricGap(const FieldMap &fields)
 
     try
     {
-        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pConcentricGapFactory->Read(*pParameters, fields)));
+        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pConcentricGapFactory->Read(*pParameters, fields));
 
         pParameters->m_minZCoordinate    = fields.GetOrDefault<float>("minZCoordinate",             0.f);
         pParameters->m_maxZCoordinate    = fields.GetOrDefault<float>("maxZCoordinate",             0.f);
@@ -642,7 +603,7 @@ StatusCode BinaryFileReader::ReadCaloHit(const FieldMap &fields)
 
     try
     {
-        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pCaloHitFactory->Read(*pParameters, fields)));
+        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pCaloHitFactory->Read(*pParameters, fields));
 
         pParameters->m_cellGeometry            = fields.GetOrDefault<CellGeometry>("cellGeometry",           RECTANGULAR);
         pParameters->m_positionVector          = fields.GetOrDefault<CartesianVector>("positionVector",      CartesianVector(0.f, 0.f, 0.f));
@@ -689,7 +650,7 @@ StatusCode BinaryFileReader::ReadTrack(const FieldMap &fields)
 
     try
     {
-        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pTrackFactory->Read(*pParameters, fields)));
+        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pTrackFactory->Read(*pParameters, fields));
 
         pParameters->m_d0                     = fields.GetOrDefault<float>("d0",                              0.f);
         pParameters->m_z0                     = fields.GetOrDefault<float>("z0",                              0.f);
@@ -731,7 +692,7 @@ StatusCode BinaryFileReader::ReadMCParticle(const FieldMap &fields)
 
     try
     {
-        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pMCParticleFactory->Read(*pParameters, fields)));
+        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pMCParticleFactory->Read(*pParameters, fields));
 
         pParameters->m_energy         = fields.GetOrDefault<float>("energy",                                0.f);
         pParameters->m_momentum       = fields.GetOrDefault<CartesianVector>("momentum",                    CartesianVector(0.f, 0.f, 0.f));

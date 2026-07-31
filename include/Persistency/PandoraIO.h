@@ -49,7 +49,8 @@ enum ComponentId
     GEOMETRY_END_COMPONENT,
     LAR_TPC_COMPONENT,
     EVENT_INFO_COMPONENT,
-    VERSION_COMPONENT,
+    METADATA_COMPONENT,
+    SCHEMA_REGISTRY_COMPONENT,
     HEADER_END_COMPONENT,
     UNKNOWN_COMPONENT
 };
@@ -97,33 +98,27 @@ enum FileMode
 
 /**
  *  @brief  Per-component schema version entry.
- *          Each component type carries its own version number independently, so
- *          a CaloHit schema change does not force a version bump on LArTPC etc.
  */
 struct ComponentSchemaVersion
 {
-    ComponentId  m_componentId;    ///< The component type
-    unsigned int m_schemaVersion;  ///< Monotonically increasing schema version for this type
+    ComponentId  m_componentId;
+    unsigned int m_schemaVersion;
 };
 
-typedef std::vector<ComponentSchemaVersion> SchemaRegistry; ///< Full set of per-component versions for a file
+typedef std::vector<ComponentSchemaVersion> SchemaRegistry;
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 /**
  *  @brief  File-level metadata stored in the global header.
- *
- *  All fields are optional strings so that any experiment-specific toolchain can
- *  round-trip metadata without requiring SDK changes. m_userParameters provides
- *  an open-ended key/value bag for anything not covered by the named fields.
  */
 struct FileMetadata
 {
-    std::string                        m_producerName;       ///< e.g. "LArSoft", "ILCSOFT"
-    std::string                        m_producerVersion;    ///< Arbitrary producer version string
-    std::string                        m_creationTimestamp;  ///< ISO 8601, filled automatically by FileWriter
-    std::string                        m_description;        ///< Freeform human-readable description
-    std::map<std::string, std::string> m_userParameters;     ///< Open-ended key/value metadata bag
+    std::string                        m_producerName;
+    std::string                        m_producerVersion;
+    std::string                        m_creationTimestamp;
+    std::string                        m_description;
+    std::map<std::string, std::string> m_userParameters;
 };
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -135,57 +130,24 @@ struct FileMetadata
 class StopProcessingException
 {
 public:
-    /**
-     *  @brief  Constructor
-     *
-     *  @param  description the description of the context under which exception was raised
-     */
     StopProcessingException(const std::string &description);
-
-    /**
-     *  @brief  Copy constructor
-     *
-     *  @param  rhs the instance to copy
-     */
     StopProcessingException(const StopProcessingException &rhs);
-
-    /**
-     *  @brief  Destructor
-     */
     ~StopProcessingException();
-
-    /**
-     *  @brief  Get the description of the context under which exception was raised
-     *
-     *  @return the description
-     */
     const std::string &GetDescription() const;
 
 private:
-    const std::string m_description; ///< Description of the context under which exception was raised
+    const std::string m_description;
 };
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 inline StopProcessingException::StopProcessingException(const std::string &description) :
-    m_description(description)
-{
-}
-
-//------------------------------------------------------------------------------------------------------------------------------------------
+    m_description(description) {}
 
 inline StopProcessingException::StopProcessingException(const StopProcessingException &rhs) :
-    m_description(rhs.GetDescription())
-{
-}
+    m_description(rhs.GetDescription()) {}
 
-//------------------------------------------------------------------------------------------------------------------------------------------
-
-inline StopProcessingException::~StopProcessingException()
-{
-}
-
-//------------------------------------------------------------------------------------------------------------------------------------------
+inline StopProcessingException::~StopProcessingException() {}
 
 inline const std::string &StopProcessingException::GetDescription() const
 {

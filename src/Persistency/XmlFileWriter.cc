@@ -123,8 +123,8 @@ std::string FieldBytesToString(const std::vector<unsigned char> &bytes)
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 XmlFileWriter::XmlFileWriter(const pandora::Pandora &pandora, const std::string &fileName,
-    const FileMode fileMode, const unsigned int majorVersion, const unsigned int minorVersion) :
-    FileWriter(pandora, fileName, majorVersion, minorVersion),
+    const FileMode fileMode) :
+    FileWriter(pandora, fileName),
     m_pXmlDocument(nullptr),
     m_pContainerXmlElement(nullptr),
     m_pCurrentXmlElement(nullptr)
@@ -259,8 +259,6 @@ StatusCode XmlFileWriter::WriteComponent(const std::string &elementName,
 
     m_pContainerXmlElement->LinkEndChild(pComponentElement);
 
-    // Point m_pCurrentXmlElement at the component so legacy factory Write
-    // calls that use WriteVariable(key, value) append to the right element.
     m_pCurrentXmlElement = pComponentElement;
 
     return STATUS_CODE_SUCCESS;
@@ -277,27 +275,9 @@ StatusCode XmlFileWriter::WriteGlobalHeader()
     if (HEADER_CONTAINER != m_containerId)
         return STATUS_CODE_FAILURE;
 
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteVersion());
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteMetadata());
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteSchemaRegistry());
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteFooter());
-
-    return STATUS_CODE_SUCCESS;
-}
-
-//------------------------------------------------------------------------------------------------------------------------------------------
-
-StatusCode XmlFileWriter::WriteVersion()
-{
-    if (HEADER_CONTAINER != m_containerId)
-        return STATUS_CODE_FAILURE;
-
-    // Legacy Version element written as attributes so old XmlFileReader can
-    // still find MajorVersion / MinorVersion without schema-version logic.
-    TiXmlElement *const pVersionElement = new TiXmlElement("Version");
-    pVersionElement->SetAttribute("MajorVersion", static_cast<int>(m_fileMajorVersion));
-    pVersionElement->SetAttribute("MinorVersion", static_cast<int>(m_fileMinorVersion));
-    m_pContainerXmlElement->LinkEndChild(pVersionElement);
 
     return STATUS_CODE_SUCCESS;
 }
@@ -346,7 +326,7 @@ StatusCode XmlFileWriter::WriteSubDetector(const SubDetector *const pSubDetector
         return STATUS_CODE_FAILURE;
 
     FieldMap fields;
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pSubDetectorFactory->Write(pSubDetector, fields)));
+    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pSubDetectorFactory->Write(pSubDetector, fields));
 
     fields.Set("subDetectorName",      pSubDetector->GetSubDetectorName());
     fields.Set("subDetectorType",      pSubDetector->GetSubDetectorType());
@@ -387,7 +367,7 @@ StatusCode XmlFileWriter::WriteLArTPC(const LArTPC *const pLArTPC)
         return STATUS_CODE_FAILURE;
 
     FieldMap fields;
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pLArTPCFactory->Write(pLArTPC, fields)));
+    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pLArTPCFactory->Write(pLArTPC, fields));
 
     fields.Set("larTPCVolumeId",     pLArTPC->GetLArTPCVolumeId());
     fields.Set("centerX",            pLArTPC->GetCenterX());
@@ -422,7 +402,7 @@ StatusCode XmlFileWriter::WriteDetectorGap(const DetectorGap *const pDetectorGap
     if (nullptr != pLineGap)
     {
         FieldMap fields;
-        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pLineGapFactory->Write(pLineGap, fields)));
+        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pLineGapFactory->Write(pLineGap, fields));
         fields.Set("lineGapType", pLineGap->GetLineGapType());
         fields.Set("lineStartX",  pLineGap->GetLineStartX());
         fields.Set("lineEndX",    pLineGap->GetLineEndX());
@@ -433,7 +413,7 @@ StatusCode XmlFileWriter::WriteDetectorGap(const DetectorGap *const pDetectorGap
     else if (nullptr != pBoxGap)
     {
         FieldMap fields;
-        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pBoxGapFactory->Write(pBoxGap, fields)));
+        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pBoxGapFactory->Write(pBoxGap, fields));
         fields.Set("vertex", pBoxGap->GetVertex());
         fields.Set("side1",  pBoxGap->GetSide1());
         fields.Set("side2",  pBoxGap->GetSide2());
@@ -443,7 +423,7 @@ StatusCode XmlFileWriter::WriteDetectorGap(const DetectorGap *const pDetectorGap
     else if (nullptr != pConcentricGap)
     {
         FieldMap fields;
-        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pConcentricGapFactory->Write(pConcentricGap, fields)));
+        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pConcentricGapFactory->Write(pConcentricGap, fields));
         fields.Set("minZCoordinate",     pConcentricGap->GetMinZCoordinate());
         fields.Set("maxZCoordinate",     pConcentricGap->GetMaxZCoordinate());
         fields.Set("innerRCoordinate",   pConcentricGap->GetInnerRCoordinate());
@@ -468,7 +448,7 @@ StatusCode XmlFileWriter::WriteCaloHit(const CaloHit *const pCaloHit)
         return STATUS_CODE_FAILURE;
 
     FieldMap fields;
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pCaloHitFactory->Write(pCaloHit, fields)));
+    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pCaloHitFactory->Write(pCaloHit, fields));
 
     fields.Set("cellGeometry",            pCaloHit->GetCellGeometry());
     fields.Set("positionVector",          pCaloHit->GetPositionVector());
@@ -502,7 +482,7 @@ StatusCode XmlFileWriter::WriteTrack(const Track *const pTrack)
         return STATUS_CODE_FAILURE;
 
     FieldMap fields;
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pTrackFactory->Write(pTrack, fields)));
+    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pTrackFactory->Write(pTrack, fields));
 
     fields.Set("d0",                      pTrack->GetD0());
     fields.Set("z0",                      pTrack->GetZ0());
@@ -531,7 +511,7 @@ StatusCode XmlFileWriter::WriteMCParticle(const MCParticle *const pMCParticle)
         return STATUS_CODE_FAILURE;
 
     FieldMap fields;
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, FactoryReadOrWrite(m_pMCParticleFactory->Write(pMCParticle, fields)));
+    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pMCParticleFactory->Write(pMCParticle, fields));
 
     fields.Set("energy",         pMCParticle->GetEnergy());
     fields.Set("momentum",       pMCParticle->GetMomentum());

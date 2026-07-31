@@ -25,22 +25,6 @@ namespace pandora
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 /**
- *  @brief  Treat STATUS_CODE_NOT_IMPLEMENTED from a factory Read or Write call
- *          as success (meaning "this factory has no extra fields to contribute").
- *
- *  Rationale: ObjectFactory::Read/Write (generation-2 overloads) return
- *  NOT_IMPLEMENTED when a factory has not yet been migrated to the FieldMap
- *  interface. That is not an error. This helper maps it to SUCCESS so that
- *  every call site doesn't need the same two-line check.
- */
-inline StatusCode FactoryReadOrWrite(const StatusCode sc)
-{
-    return (STATUS_CODE_NOT_IMPLEMENTED == sc) ? STATUS_CODE_SUCCESS : sc;
-}
-
-//------------------------------------------------------------------------------------------------------------------------------------------
-
-/**
  *  @brief  Persistency class
  *
  *  Base class for FileReader and FileWriter. Owns the object factories and the
@@ -104,7 +88,7 @@ protected:
     std::string           m_fileName;       ///< The file name
     FileType              m_fileType;       ///< The file type (BINARY / XML)
     ContainerId           m_containerId;    ///< The type of container currently being read/written
-    FileMetadata          m_metadata;       ///< File-level metadata (producer, timestamp, description, user params)
+    FileMetadata          m_metadata;       ///< File-level metadata
     SchemaRegistry        m_schemaRegistry; ///< Per-component schema versions recorded in the global header
 
     ObjectFactory<object_creation::CaloHit::Parameters,               object_creation::CaloHit::Object>               *m_pCaloHitFactory;
