@@ -1,8 +1,8 @@
 /**
  *  @file   PandoraSDK/include/Persistency/Persistency.h
- * 
- *  @brief  Header file for persistency class
- * 
+ *
+ *  @brief  Header file for persistency class.
+ *
  *  $Log: $
  */
 #ifndef PANDORA_PERSISTENCY_H
@@ -11,26 +11,51 @@
 #include "Pandora/ObjectCreation.h"
 #include "Pandora/ObjectFactory.h"
 #include "Pandora/PandoraObjectFactories.h"
-
 #include "Persistency/PandoraIO.h"
+#include "Pandora/StatusCodes.h"
 
+#include "Persistency/FieldMap.h"
+
+#include <functional>
 #include <string>
 
 namespace pandora
 {
 
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+/**
+ *  @brief  Treat STATUS_CODE_NOT_IMPLEMENTED from a factory Read or Write call
+ *          as success (meaning "this factory has no extra fields to contribute").
+ *
+ *  Rationale: ObjectFactory::Read/Write (generation-2 overloads) return
+ *  NOT_IMPLEMENTED when a factory has not yet been migrated to the FieldMap
+ *  interface. That is not an error. This helper maps it to SUCCESS so that
+ *  every call site doesn't need the same two-line check.
+ */
+inline StatusCode FactoryReadOrWrite(const StatusCode sc)
+{
+    return (STATUS_CODE_NOT_IMPLEMENTED == sc) ? STATUS_CODE_SUCCESS : sc;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
 /**
  *  @brief  Persistency class
+ *
+ *  Base class for FileReader and FileWriter. Owns the object factories and the
+ *  shared file-identity state (name, type, active container). Also carries the
+ *  SchemaRegistry and FileMetadata loaded from (or to be written to) the global
+ *  header, making them available to both the reader and writer hierarchies.
  */
 class Persistency
 {
 public:
     /**
      *  @brief  Constructor
-     * 
-     *  @param  pandora the pandora instance to be used alongside the file writer
-     *  @param  fileName the name of the output file
-     *  @param  fileMode the mode for file writing
+     *
+     *  @param  pandora   the pandora instance to be used alongside the file reader/writer
+     *  @param  fileName  the name of the file
      */
     Persistency(const pandora::Pandora &pandora, const std::string &fileName);
 
@@ -41,63 +66,63 @@ public:
 
     /**
      *  @brief  Get the file name
-     * 
-     *  @return the file name
      */
     const std::string &GetFileName() const;
 
     /**
      *  @brief  Get the file type
-     * 
-     *  @return the file type
      */
     FileType GetFileType() const;
 
     /**
+     *  @brief  Get the file metadata (populated after ReadGlobalHeader / set before WriteGlobalHeader).
+     *          Returns a non-const reference so callers can populate it before writing.
+     */
+    FileMetadata &GetFileMetadata();
+
+    /**
+     *  @brief  Get the schema registry (populated after ReadGlobalHeader / set before WriteGlobalHeader)
+     */
+    const SchemaRegistry &GetSchemaRegistry() const;
+
+    /**
      *  @brief  Set the factory to use for all instantiations and parameter persistence
-     * 
-     *  @param  pFactory address of the factory
+     *
+     *  @param  pFactory  address of the factory (ownership transferred)
      */
     template <typename PARAMETERS, typename OBJECT>
     StatusCode SetFactory(ObjectFactory<PARAMETERS, OBJECT> *const pFactory);
 
 protected:
     /**
-     *  @brief  Replace the current factory with the provided instance
-     * 
-     *  @param  pFactory address of the factory
+     *  @brief  Replace the current factory with the provided instance (takes ownership)
      */
     template <typename PARAMETERS, typename OBJECT>
     void ReplaceCurrentFactory(ObjectFactory<PARAMETERS, OBJECT> *const pFactory);
 
-    const Pandora *const        m_pPandora;             ///< Address of pandora instance to be used alongside the file writer
-    std::string                 m_fileName;             ///< The file name
-    FileType                    m_fileType;             ///< The file type
-    ContainerId                 m_containerId;          ///< The type of container currently being written to file
+    const Pandora *const  m_pPandora;       ///< Address of pandora instance
+    std::string           m_fileName;       ///< The file name
+    FileType              m_fileType;       ///< The file type (BINARY / XML)
+    ContainerId           m_containerId;    ///< The type of container currently being read/written
+    FileMetadata          m_metadata;       ///< File-level metadata (producer, timestamp, description, user params)
+    SchemaRegistry        m_schemaRegistry; ///< Per-component schema versions recorded in the global header
 
-    ObjectFactory<object_creation::CaloHit::Parameters, object_creation::CaloHit::Object>                                  *m_pCaloHitFactory;       ///< Address of the calo hit factory
-    ObjectFactory<object_creation::Track::Parameters, object_creation::Track::Object>                                      *m_pTrackFactory;         ///< Address of the track factory
-    ObjectFactory<object_creation::MCParticle::Parameters, object_creation::MCParticle::Object>                            *m_pMCParticleFactory;    ///< Address of the mc particle factory
-    ObjectFactory<object_creation::Geometry::SubDetector::Parameters, object_creation::Geometry::SubDetector::Object>      *m_pSubDetectorFactory;   ///< Address of the sub detector factory
-    ObjectFactory<object_creation::Geometry::LArTPC::Parameters, object_creation::Geometry::LArTPC::Object>                *m_pLArTPCFactory;        ///< Address of the lar tpc factory
-    ObjectFactory<object_creation::Geometry::LineGap::Parameters, object_creation::Geometry::LineGap::Object>              *m_pLineGapFactory;       ///< Address of the line gap factory
-    ObjectFactory<object_creation::Geometry::BoxGap::Parameters, object_creation::Geometry::BoxGap::Object>                *m_pBoxGapFactory;        ///< Address of the box gap factory
-    ObjectFactory<object_creation::Geometry::ConcentricGap::Parameters, object_creation::Geometry::ConcentricGap::Object>  *m_pConcentricGapFactory; ///< Address of the concentric gap factory
+    ObjectFactory<object_creation::CaloHit::Parameters,               object_creation::CaloHit::Object>               *m_pCaloHitFactory;
+    ObjectFactory<object_creation::Track::Parameters,                 object_creation::Track::Object>                 *m_pTrackFactory;
+    ObjectFactory<object_creation::MCParticle::Parameters,            object_creation::MCParticle::Object>            *m_pMCParticleFactory;
+    ObjectFactory<object_creation::Geometry::SubDetector::Parameters, object_creation::Geometry::SubDetector::Object> *m_pSubDetectorFactory;
+    ObjectFactory<object_creation::Geometry::LArTPC::Parameters,      object_creation::Geometry::LArTPC::Object>      *m_pLArTPCFactory;
+    ObjectFactory<object_creation::Geometry::LineGap::Parameters,     object_creation::Geometry::LineGap::Object>     *m_pLineGapFactory;
+    ObjectFactory<object_creation::Geometry::BoxGap::Parameters,      object_creation::Geometry::BoxGap::Object>      *m_pBoxGapFactory;
+    ObjectFactory<object_creation::Geometry::ConcentricGap::Parameters,object_creation::Geometry::ConcentricGap::Object>*m_pConcentricGapFactory;
 };
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-inline const std::string &Persistency::GetFileName() const
-{
-    return m_fileName;
-}
-
-//------------------------------------------------------------------------------------------------------------------------------------------
-
-inline FileType Persistency::GetFileType() const
-{
-    return m_fileType;
-}
+inline const std::string &Persistency::GetFileName() const { return m_fileName; }
+inline FileType Persistency::GetFileType() const           { return m_fileType; }
+inline FileMetadata &Persistency::GetFileMetadata()        { return m_metadata; }
+inline const SchemaRegistry &Persistency::GetSchemaRegistry() const { return m_schemaRegistry; }
 
 } // namespace pandora
 

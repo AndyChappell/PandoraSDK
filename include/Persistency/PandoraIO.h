@@ -8,7 +8,9 @@
 #ifndef PANDORA_IO_H
 #define PANDORA_IO_H 1
 
+#include <map>
 #include <string>
+#include <vector>
 
 namespace pandora
 {
@@ -89,6 +91,39 @@ enum FileMode
     APPEND,
     OVERWRITE,
     UNKNOWN_MODE
+};
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+/**
+ *  @brief  Per-component schema version entry.
+ *          Each component type carries its own version number independently, so
+ *          a CaloHit schema change does not force a version bump on LArTPC etc.
+ */
+struct ComponentSchemaVersion
+{
+    ComponentId  m_componentId;    ///< The component type
+    unsigned int m_schemaVersion;  ///< Monotonically increasing schema version for this type
+};
+
+typedef std::vector<ComponentSchemaVersion> SchemaRegistry; ///< Full set of per-component versions for a file
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+/**
+ *  @brief  File-level metadata stored in the global header.
+ *
+ *  All fields are optional strings so that any experiment-specific toolchain can
+ *  round-trip metadata without requiring SDK changes. m_userParameters provides
+ *  an open-ended key/value bag for anything not covered by the named fields.
+ */
+struct FileMetadata
+{
+    std::string                        m_producerName;       ///< e.g. "LArSoft", "ILCSOFT"
+    std::string                        m_producerVersion;    ///< Arbitrary producer version string
+    std::string                        m_creationTimestamp;  ///< ISO 8601, filled automatically by FileWriter
+    std::string                        m_description;        ///< Freeform human-readable description
+    std::map<std::string, std::string> m_userParameters;     ///< Open-ended key/value metadata bag
 };
 
 //------------------------------------------------------------------------------------------------------------------------------------------

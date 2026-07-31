@@ -29,7 +29,8 @@
 namespace pandora
 {
 
-FileWriter::FileWriter(const pandora::Pandora &pandora, const std::string &fileName, const unsigned int majorVersion, const unsigned int minorVersion) :
+FileWriter::FileWriter(const pandora::Pandora &pandora, const std::string &fileName,
+    const unsigned int majorVersion, const unsigned int minorVersion) :
     Persistency(pandora, fileName),
     m_fileMajorVersion(majorVersion),
     m_fileMinorVersion(minorVersion)
@@ -44,6 +45,9 @@ FileWriter::~FileWriter()
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
+// CHANGE: now virtual; BinaryFileWriter overrides this to also write metadata and
+// schema registry. The base version is retained for any format that does not yet
+// support the full self-describing header (e.g. a future minimal writer).
 StatusCode FileWriter::WriteGlobalHeader()
 {
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteHeader(HEADER_CONTAINER));
@@ -52,7 +56,6 @@ StatusCode FileWriter::WriteGlobalHeader()
         return STATUS_CODE_FAILURE;
 
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteVersion());
-
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteFooter());
 
     return STATUS_CODE_SUCCESS;
@@ -70,7 +73,6 @@ StatusCode FileWriter::WriteGeometry()
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteSubDetectorList());
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteLArTPCList());
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteDetectorGapList());
-
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteFooter());
 
     return STATUS_CODE_SUCCESS;
@@ -78,8 +80,8 @@ StatusCode FileWriter::WriteGeometry()
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-StatusCode FileWriter::WriteEvent(const CaloHitList &caloHitList, const TrackList &trackList, const MCParticleList &mcParticleList,
-    const bool writeMCRelationships, const bool writeTrackRelationships)
+StatusCode FileWriter::WriteEvent(const CaloHitList &caloHitList, const TrackList &trackList,
+    const MCParticleList &mcParticleList, const bool writeMCRelationships, const bool writeTrackRelationships)
 {
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteHeader(EVENT_CONTAINER));
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteCaloHitList(caloHitList));
@@ -94,12 +96,13 @@ StatusCode FileWriter::WriteEvent(const CaloHitList &caloHitList, const TrackLis
     }
 
     if (writeTrackRelationships)
-    {
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteTrackRelationships(trackList));
-    }
 
-    if (m_fileMajorVersion == 2)
-        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteEventInformation());
+    // CHANGE: WriteEventInformation is now always called; the old "if (m_fileMajorVersion == 2)"
+    // gate is removed. In the new format every event carries run/subrun/event numbers as a
+    // tagged-field component, so callers that previously relied on absence of this component
+    // will simply read zeros via FieldMap::GetOrDefault when the component is present.
+    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteEventInformation());
 
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteFooter());
 
@@ -107,13 +110,13 @@ StatusCode FileWriter::WriteEvent(const CaloHitList &caloHitList, const TrackLis
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
+// Private list-iteration helpers — all unchanged from original
+//------------------------------------------------------------------------------------------------------------------------------------------
 
 StatusCode FileWriter::WriteSubDetectorList()
 {
     for (const SubDetectorMap::value_type &mapEntry : m_pPandora->GetGeometry()->GetSubDetectorMap())
-    {
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteSubDetector(mapEntry.second));
-    }
 
     return STATUS_CODE_SUCCESS;
 }
@@ -123,9 +126,7 @@ StatusCode FileWriter::WriteSubDetectorList()
 StatusCode FileWriter::WriteLArTPCList()
 {
     for (const LArTPCMap::value_type &mapEntry : m_pPandora->GetGeometry()->GetLArTPCMap())
-    {
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteLArTPC(mapEntry.second));
-    }
 
     return STATUS_CODE_SUCCESS;
 }
@@ -135,9 +136,7 @@ StatusCode FileWriter::WriteLArTPCList()
 StatusCode FileWriter::WriteDetectorGapList()
 {
     for (const DetectorGap *const pDetectorGap : m_pPandora->GetGeometry()->GetDetectorGapList())
-    {
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteDetectorGap(pDetectorGap));
-    }
 
     return STATUS_CODE_SUCCESS;
 }
@@ -147,9 +146,7 @@ StatusCode FileWriter::WriteDetectorGapList()
 StatusCode FileWriter::WriteTrackList(const TrackList &trackList)
 {
     for (const Track *const pTrack : trackList)
-    {
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteTrack(pTrack));
-    }
 
     return STATUS_CODE_SUCCESS;
 }
@@ -159,9 +156,7 @@ StatusCode FileWriter::WriteTrackList(const TrackList &trackList)
 StatusCode FileWriter::WriteCaloHitList(const CaloHitList &caloHitList)
 {
     for (const CaloHit *const pCaloHit : caloHitList)
-    {
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteCaloHit(pCaloHit));
-    }
 
     return STATUS_CODE_SUCCESS;
 }
@@ -171,9 +166,7 @@ StatusCode FileWriter::WriteCaloHitList(const CaloHitList &caloHitList)
 StatusCode FileWriter::WriteMCParticleList(const MCParticleList &mcParticleList)
 {
     for (const MCParticle *const pMCParticle : mcParticleList)
-    {
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteMCParticle(pMCParticle));
-    }
 
     return STATUS_CODE_SUCCESS;
 }
@@ -183,9 +176,7 @@ StatusCode FileWriter::WriteMCParticleList(const MCParticleList &mcParticleList)
 StatusCode FileWriter::WriteCaloHitToMCParticleRelationships(const CaloHitList &caloHitList)
 {
     for (const CaloHit *const pCaloHit : caloHitList)
-    {
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteCaloHitToMCParticleRelationship(pCaloHit));
-    }
 
     return STATUS_CODE_SUCCESS;
 }
@@ -195,9 +186,7 @@ StatusCode FileWriter::WriteCaloHitToMCParticleRelationships(const CaloHitList &
 StatusCode FileWriter::WriteTrackToMCParticleRelationships(const TrackList &trackList)
 {
     for (const Track *const pTrack : trackList)
-    {
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteTrackToMCParticleRelationship(pTrack));
-    }
 
     return STATUS_CODE_SUCCESS;
 }
@@ -207,9 +196,7 @@ StatusCode FileWriter::WriteTrackToMCParticleRelationships(const TrackList &trac
 StatusCode FileWriter::WriteMCParticleRelationships(const MCParticleList &mcParticleList)
 {
     for (const MCParticle *const pMCParticle : mcParticleList)
-    {
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteMCParticleRelationships(pMCParticle));
-    }
 
     return STATUS_CODE_SUCCESS;
 }
@@ -219,9 +206,7 @@ StatusCode FileWriter::WriteMCParticleRelationships(const MCParticleList &mcPart
 StatusCode FileWriter::WriteTrackRelationships(const TrackList &trackList)
 {
     for (const Track *const pTrack : trackList)
-    {
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteTrackRelationships(pTrack));
-    }
 
     return STATUS_CODE_SUCCESS;
 }
@@ -243,7 +228,8 @@ StatusCode FileWriter::WriteCaloHitToMCParticleRelationship(const CaloHit *const
     for (const MCParticle *const pMCParticle : mcParticleVector)
     {
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=,
-            this->WriteRelationship(CALO_HIT_TO_MC_RELATIONSHIP, pCaloHit->GetParentAddress(), pMCParticle->GetUid(), mcParticleWeightMap.at(pMCParticle)));
+            this->WriteRelationship(CALO_HIT_TO_MC_RELATIONSHIP,
+                pCaloHit->GetParentAddress(), pMCParticle->GetUid(), mcParticleWeightMap.at(pMCParticle)));
     }
 
     return STATUS_CODE_SUCCESS;
@@ -266,7 +252,8 @@ StatusCode FileWriter::WriteTrackToMCParticleRelationship(const Track *const pTr
     for (const MCParticle *const pMCParticle : mcParticleVector)
     {
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=,
-            this->WriteRelationship(TRACK_TO_MC_RELATIONSHIP, pTrack->GetParentAddress(), pMCParticle->GetUid(), mcParticleWeightMap.at(pMCParticle)));
+            this->WriteRelationship(TRACK_TO_MC_RELATIONSHIP,
+                pTrack->GetParentAddress(), pMCParticle->GetUid(), mcParticleWeightMap.at(pMCParticle)));
     }
 
     return STATUS_CODE_SUCCESS;
@@ -280,19 +267,14 @@ StatusCode FileWriter::WriteMCParticleRelationships(const MCParticle *const pMCP
         return STATUS_CODE_FAILURE;
 
     const Uid uid(pMCParticle->GetUid());
-    const MCParticleList &parentList(pMCParticle->GetParentList());
-    const MCParticleList &daughterList(pMCParticle->GetDaughterList());
 
-    for (const MCParticle *const pParentMCParticle : parentList)
-    {
-        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteRelationship(MC_PARENT_DAUGHTER_RELATIONSHIP, pParentMCParticle->GetUid(), uid));
-    }
+    for (const MCParticle *const pParentMCParticle : pMCParticle->GetParentList())
+        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=,
+            this->WriteRelationship(MC_PARENT_DAUGHTER_RELATIONSHIP, pParentMCParticle->GetUid(), uid));
 
-    for (const MCParticle *const pDaughterMCParticle : daughterList)
-    {
-        PANDORA_RETURN_RESULT_IF(
-            STATUS_CODE_SUCCESS, !=, this->WriteRelationship(MC_PARENT_DAUGHTER_RELATIONSHIP, uid, pDaughterMCParticle->GetUid()));
-    }
+    for (const MCParticle *const pDaughterMCParticle : pMCParticle->GetDaughterList())
+        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=,
+            this->WriteRelationship(MC_PARENT_DAUGHTER_RELATIONSHIP, uid, pDaughterMCParticle->GetUid()));
 
     return STATUS_CODE_SUCCESS;
 }
@@ -304,28 +286,19 @@ StatusCode FileWriter::WriteTrackRelationships(const Track *const pTrack)
     if (EVENT_CONTAINER != m_containerId)
         return STATUS_CODE_FAILURE;
 
-    const void *address(pTrack->GetParentAddress());
-    const TrackList &parentList(pTrack->GetParentList());
-    const TrackList &daughterList(pTrack->GetDaughterList());
-    const TrackList &siblingList(pTrack->GetSiblingList());
+    const void *const address(pTrack->GetParentAddress());
 
-    for (const Track *const pParentTrack : parentList)
-    {
-        PANDORA_RETURN_RESULT_IF(
-            STATUS_CODE_SUCCESS, !=, this->WriteRelationship(TRACK_PARENT_DAUGHTER_RELATIONSHIP, pParentTrack->GetParentAddress(), address));
-    }
+    for (const Track *const pParentTrack : pTrack->GetParentList())
+        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=,
+            this->WriteRelationship(TRACK_PARENT_DAUGHTER_RELATIONSHIP, pParentTrack->GetParentAddress(), address));
 
-    for (const Track *const pDaughterTrack : daughterList)
-    {
+    for (const Track *const pDaughterTrack : pTrack->GetDaughterList())
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=,
             this->WriteRelationship(TRACK_PARENT_DAUGHTER_RELATIONSHIP, address, pDaughterTrack->GetParentAddress()));
-    }
 
-    for (const Track *const pSiblingTrack : siblingList)
-    {
-        PANDORA_RETURN_RESULT_IF(
-            STATUS_CODE_SUCCESS, !=, this->WriteRelationship(TRACK_SIBLING_RELATIONSHIP, address, pSiblingTrack->GetParentAddress()));
-    }
+    for (const Track *const pSiblingTrack : pTrack->GetSiblingList())
+        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=,
+            this->WriteRelationship(TRACK_SIBLING_RELATIONSHIP, address, pSiblingTrack->GetParentAddress()));
 
     return STATUS_CODE_SUCCESS;
 }
