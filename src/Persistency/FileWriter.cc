@@ -283,4 +283,51 @@ StatusCode FileWriter::WriteTrackRelationships(const Track *const pTrack)
     return STATUS_CODE_SUCCESS;
 }
 
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Schema version table
+//
+// Single source of truth for every concrete FileWriter (binary, XML, and any
+// future format). Increment a value here (and register a corresponding reader
+// migration in BinaryFileReader/XmlFileReader) when a field is removed or its
+// semantics change. Adding a new optional field does not need a bump.
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+unsigned int FileWriter::GetSchemaVersion(const ComponentId componentId)
+{
+    switch (componentId)
+    {
+        case CALO_HIT_COMPONENT:       return 1;
+        case TRACK_COMPONENT:          return 1;
+        case MC_PARTICLE_COMPONENT:    return 1;
+        case RELATIONSHIP_COMPONENT:   return 1;
+        case SUB_DETECTOR_COMPONENT:   return 1;
+        case LINE_GAP_COMPONENT:       return 1;
+        case BOX_GAP_COMPONENT:        return 1;
+        case CONCENTRIC_GAP_COMPONENT: return 1;
+        case LAR_TPC_COMPONENT:        return 1;
+        case EVENT_INFO_COMPONENT:     return 1;
+        default:                       return 0;
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+void FileWriter::PopulateSchemaRegistry()
+{
+    const ComponentId allComponents[] = {
+        CALO_HIT_COMPONENT, TRACK_COMPONENT, MC_PARTICLE_COMPONENT,
+        RELATIONSHIP_COMPONENT, SUB_DETECTOR_COMPONENT, LINE_GAP_COMPONENT,
+        BOX_GAP_COMPONENT, CONCENTRIC_GAP_COMPONENT, LAR_TPC_COMPONENT,
+        EVENT_INFO_COMPONENT
+    };
+
+    for (const ComponentId id : allComponents)
+    {
+        ComponentSchemaVersion entry;
+        entry.m_componentId   = id;
+        entry.m_schemaVersion = GetSchemaVersion(id);
+        m_schemaRegistry.push_back(entry);
+    }
+}
+
 } // namespace pandora

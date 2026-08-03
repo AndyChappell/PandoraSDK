@@ -69,8 +69,6 @@ private:
         const void *address1, const void *address2, const float weight);
     StatusCode WriteEventInformation();
 
-    static unsigned int GetSchemaVersion(const ComponentId componentId);
-
     TiXmlDocument *m_pXmlDocument;
     TiXmlElement  *m_pContainerXmlElement;
     TiXmlElement  *m_pCurrentXmlElement;

@@ -55,22 +55,9 @@ BinaryFileWriter::BinaryFileWriter(const pandora::Pandora &pandora, const std::s
 
     m_containerPosition = m_fileStream.tellp();
 
-    // Populate the SchemaRegistry from the current version table so it is
-    // available to WriteGlobalHeader without any extra caller effort.
-    const ComponentId allComponents[] = {
-        CALO_HIT_COMPONENT, TRACK_COMPONENT, MC_PARTICLE_COMPONENT,
-        RELATIONSHIP_COMPONENT, SUB_DETECTOR_COMPONENT, LINE_GAP_COMPONENT,
-        BOX_GAP_COMPONENT, CONCENTRIC_GAP_COMPONENT, LAR_TPC_COMPONENT,
-        EVENT_INFO_COMPONENT
-    };
-
-    for (const ComponentId id : allComponents)
-    {
-        ComponentSchemaVersion entry;
-        entry.m_componentId   = id;
-        entry.m_schemaVersion = GetSchemaVersion(id);
-        m_schemaRegistry.push_back(entry);
-    }
+    // Schema version table lives once, in FileWriter (see FileWriter::GetSchemaVersion),
+    // so binary and XML writers cannot drift apart.
+    this->PopulateSchemaRegistry();
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -78,30 +65,6 @@ BinaryFileWriter::BinaryFileWriter(const pandora::Pandora &pandora, const std::s
 BinaryFileWriter::~BinaryFileWriter()
 {
     m_fileStream.close();
-}
-
-//------------------------------------------------------------------------------------------------------------------------------------------
-// Schema version table
-// Increment a value here (and add a reader migration) when a field is removed
-// or its semantics change. Adding a new optional field does not need a bump.
-//------------------------------------------------------------------------------------------------------------------------------------------
-
-unsigned int BinaryFileWriter::GetSchemaVersion(const ComponentId componentId)
-{
-    switch (componentId)
-    {
-        case CALO_HIT_COMPONENT:       return 1;
-        case TRACK_COMPONENT:          return 1;
-        case MC_PARTICLE_COMPONENT:    return 1;
-        case RELATIONSHIP_COMPONENT:   return 1;
-        case SUB_DETECTOR_COMPONENT:   return 1;
-        case LINE_GAP_COMPONENT:       return 1;
-        case BOX_GAP_COMPONENT:        return 1;
-        case CONCENTRIC_GAP_COMPONENT: return 1;
-        case LAR_TPC_COMPONENT:        return 1;
-        case EVENT_INFO_COMPONENT:     return 1;
-        default:                       return 0;
-    }
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------

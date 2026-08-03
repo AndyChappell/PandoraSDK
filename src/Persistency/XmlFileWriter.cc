@@ -153,20 +153,9 @@ XmlFileWriter::XmlFileWriter(const pandora::Pandora &pandora, const std::string 
         throw StatusCodeException(STATUS_CODE_INVALID_PARAMETER);
     }
 
-    const ComponentId allComponents[] = {
-        CALO_HIT_COMPONENT, TRACK_COMPONENT, MC_PARTICLE_COMPONENT,
-        RELATIONSHIP_COMPONENT, SUB_DETECTOR_COMPONENT, LINE_GAP_COMPONENT,
-        BOX_GAP_COMPONENT, CONCENTRIC_GAP_COMPONENT, LAR_TPC_COMPONENT,
-        EVENT_INFO_COMPONENT
-    };
-
-    for (const ComponentId id : allComponents)
-    {
-        ComponentSchemaVersion entry;
-        entry.m_componentId   = id;
-        entry.m_schemaVersion = GetSchemaVersion(id);
-        m_schemaRegistry.push_back(entry);
-    }
+    // Schema version table lives once, in FileWriter (see FileWriter::GetSchemaVersion),
+    // so binary and XML writers cannot drift apart.
+    this->PopulateSchemaRegistry();
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -175,28 +164,6 @@ XmlFileWriter::~XmlFileWriter()
 {
     m_pXmlDocument->SaveFile(m_fileName);
     delete m_pXmlDocument;
-}
-
-//------------------------------------------------------------------------------------------------------------------------------------------
-// Schema version table
-//------------------------------------------------------------------------------------------------------------------------------------------
-
-unsigned int XmlFileWriter::GetSchemaVersion(const ComponentId componentId)
-{
-    switch (componentId)
-    {
-        case CALO_HIT_COMPONENT:       return 1;
-        case TRACK_COMPONENT:          return 1;
-        case MC_PARTICLE_COMPONENT:    return 1;
-        case RELATIONSHIP_COMPONENT:   return 1;
-        case SUB_DETECTOR_COMPONENT:   return 1;
-        case LINE_GAP_COMPONENT:       return 1;
-        case BOX_GAP_COMPONENT:        return 1;
-        case CONCENTRIC_GAP_COMPONENT: return 1;
-        case LAR_TPC_COMPONENT:        return 1;
-        case EVENT_INFO_COMPONENT:     return 1;
-        default:                       return 0;
-    }
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------

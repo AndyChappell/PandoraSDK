@@ -72,8 +72,6 @@ private:
     StatusCode WriteComponent(const ComponentId componentId,
         const unsigned int schemaVersion, const FieldMap &fields);
 
-    static unsigned int GetSchemaVersion(const ComponentId componentId);
-
     // Low-level stream primitive used by WriteComponent internals only
     template <typename T>
     StatusCode WriteVariable(const T &t);
