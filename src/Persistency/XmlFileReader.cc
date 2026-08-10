@@ -28,17 +28,29 @@ namespace
 //------------------------------------------------------------------------------------------------------------------------------------------
 // XML text -> FieldMap raw-byte helpers
 //
-// These are the exact inverses of the FieldBytesToString functions in
-// XmlFileWriter.cc. Each takes a string from an XML text node and produces
-// the same raw-byte layout that FieldMap::Set<T> would have stored.
-// Dispatch is done by the tag name via a conventions table (see
-// ReadComponentFields below); for tags whose type is unknown we store the
-// text as a length-prefixed string so the FieldMap round-trips cleanly.
+// These are the exact inverses of the FieldValueToString functions in XmlFileWriter.cc. Each field element carries a "type" attribute, so
+// parsing is driven by what the file declares.
 //------------------------------------------------------------------------------------------------------------------------------------------
+
+std::vector<unsigned char> FloatFromString(const std::string &s)
+{
+    float v = s.empty() ? 0.f : std::stof(s);
+    std::vector<unsigned char> bytes(sizeof(float));
+    std::memcpy(bytes.data(), &v, sizeof(float));
+    return bytes;
+}
+
+std::vector<unsigned char> Int32FromString(const std::string &s)
+{
+    int32_t v = s.empty() ? 0 : static_cast<int32_t>(std::stol(s));
+    std::vector<unsigned char> bytes(sizeof(int32_t));
+    std::memcpy(bytes.data(), &v, sizeof(int32_t));
+    return bytes;
+}
 
 std::vector<unsigned char> Uint32FromString(const std::string &s)
 {
-    uint32_t v = static_cast<uint32_t>(std::stoul(s));
+    uint32_t v = s.empty() ? 0u : static_cast<uint32_t>(std::stoul(s));
     std::vector<unsigned char> bytes(sizeof(uint32_t));
     std::memcpy(bytes.data(), &v, sizeof(uint32_t));
     return bytes;
@@ -46,9 +58,17 @@ std::vector<unsigned char> Uint32FromString(const std::string &s)
 
 std::vector<unsigned char> Uint64FromString(const std::string &s)
 {
-    uint64_t v = static_cast<uint64_t>(std::stoull(s));
+    uint64_t v = s.empty() ? 0ull : static_cast<uint64_t>(std::stoull(s));
     std::vector<unsigned char> bytes(sizeof(uint64_t));
     std::memcpy(bytes.data(), &v, sizeof(uint64_t));
+    return bytes;
+}
+
+std::vector<unsigned char> BoolFromString(const std::string &s)
+{
+    uint8_t v = s.empty() ? 0 : static_cast<uint8_t>(std::stoul(s));
+    std::vector<unsigned char> bytes(sizeof(uint8_t));
+    std::memcpy(bytes.data(), &v, sizeof(uint8_t));
     return bytes;
 }
 
@@ -86,56 +106,52 @@ std::vector<unsigned char> StringToBytes(const std::string &s)
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-// Tag-to-encoding table.
-//
-// For every field tag written by the SDK writers we record whether it is:
-//   UINT32  — 4-byte integer/enum/float/bool
-//   UINT64  — 8-byte address (uintptr_t)
-//   CVEC    — CartesianVector (12 bytes)
-//   TSTATE  — TrackState (24 bytes)
-//   STRING  — length-prefixed string
-//
-// This lets ReadComponentFields reconstruct the correct raw-byte layout
-// without needing type information at the call site.
+
+/**
+ *  @brief  Parse a field element's "type" attribute string into a FieldValueType. Absent or unrecognised attributes fall back to UNKNOWN.
+ */
+FieldValueType FieldTypeFromAttributeString(const char *const pAttr)
+{
+    if (nullptr == pAttr)
+        return FieldValueType::UNKNOWN;
+
+    const std::string type(pAttr);
+
+    if (type == "float")  return FieldValueType::FLOAT;
+    if (type == "int32")  return FieldValueType::INT32;
+    if (type == "uint32") return FieldValueType::UINT32;
+    if (type == "uint64") return FieldValueType::UINT64;
+    if (type == "bool")   return FieldValueType::BOOL;
+    if (type == "string") return FieldValueType::STRING;
+    if (type == "cvec")   return FieldValueType::CARTESIAN_VECTOR;
+    if (type == "tstate") return FieldValueType::TRACK_STATE;
+
+    return FieldValueType::UNKNOWN;
+}
+
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-enum FieldEncoding { UINT32, UINT64, CVEC, TSTATE, STRING };
-
-FieldEncoding GetFieldEncoding(const std::string &tag)
+/**
+ *  @brief  Parse a field's text content into raw bytes, dispatching on the type declared by the file itself.
+ */
+std::vector<unsigned char> FieldTextToBytes(const FieldValueType type, const std::string &text)
 {
-    // Addresses
-    if (tag == "address1" || tag == "address2" || tag == "parentAddress" || tag == "uid")
-        return UINT64;
-
-    // CartesianVectors
-    if (tag == "positionVector"   || tag == "expectedDirection" ||
-        tag == "cellNormalVector" || tag == "momentumAtDca"     ||
-        tag == "momentum"         || tag == "vertex"            ||
-        tag == "endpoint"         || tag == "side1"             ||
-        tag == "side2"            || tag == "side3"             ||
-        tag == "vertexGap")
-        return CVEC;
-
-    // TrackStates
-    if (tag == "trackStateAtStart"       || tag == "trackStateAtEnd" ||
-        tag == "trackStateAtCalorimeter")
-        return TSTATE;
-
-    // String fields
-    if (tag == "subDetectorName"    || tag == "producerName"    ||
-        tag == "producerVersion"    || tag == "creationTimestamp" ||
-        tag == "description"        || tag.substr(0, 10) == "userParam:")
-        return STRING;
-
-    // Everything else: uint32 (covers floats, ints, enums, bool, unsigned)
-    return UINT32;
+    switch (type)
+    {
+        case FieldValueType::FLOAT:            return FloatFromString(text);
+        case FieldValueType::INT32:            return Int32FromString(text);
+        case FieldValueType::UINT64:           return Uint64FromString(text);
+        case FieldValueType::BOOL:             return BoolFromString(text);
+        case FieldValueType::STRING:           return StringToBytes(text);
+        case FieldValueType::CARTESIAN_VECTOR:  return CartesianVectorFromString(text);
+        case FieldValueType::TRACK_STATE:       return TrackStateFromString(text);
+        case FieldValueType::UINT32:
+        case FieldValueType::UNKNOWN:
+        default:                               return Uint32FromString(text);
+    }
 }
 
 } // anonymous namespace
-
-//------------------------------------------------------------------------------------------------------------------------------------------
-// Constructor / destructor
-//------------------------------------------------------------------------------------------------------------------------------------------
 
 XmlFileReader::XmlFileReader(const pandora::Pandora &pandora, const std::string &fileName) :
     FileReader(pandora, fileName),
@@ -154,8 +170,8 @@ XmlFileReader::XmlFileReader(const pandora::Pandora &pandora, const std::string 
         throw StatusCodeException(STATUS_CODE_FAILURE);
     }
 
-    // Seed the container cursor at the root element's first child so that
-    // GetNextContainerId() works correctly before the first GoToNextContainer.
+    // Seed the container cursor at the root element's first child so that GetNextContainerId() works correctly before the first
+    // GoToNextContainer.
     m_pContainerXmlNode = TiXmlHandle(m_pXmlDocument).FirstChildElement().FirstChild().Node();
 }
 
@@ -166,8 +182,6 @@ XmlFileReader::~XmlFileReader()
     delete m_pXmlDocument;
 }
 
-//------------------------------------------------------------------------------------------------------------------------------------------
-// Migration registration
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 void XmlFileReader::RegisterMigration(const ComponentId componentId,
@@ -182,8 +196,6 @@ void XmlFileReader::RegisterMigration(const ComponentId componentId,
     m_migrations[key] = std::move(fn);
 }
 
-//------------------------------------------------------------------------------------------------------------------------------------------
-// Container navigation — structurally identical to original
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 StatusCode XmlFileReader::ReadHeader()
@@ -279,15 +291,12 @@ StatusCode XmlFileReader::GoToEvent(const unsigned int eventNumber)
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-// Unified component read path
-//------------------------------------------------------------------------------------------------------------------------------------------
 
 StatusCode XmlFileReader::ReadComponentFields(unsigned int &schemaVersion, FieldMap &fields) const
 {
     if (!m_pCurrentXmlElement)
         return STATUS_CODE_FAILURE;
 
-    // Read schemaVersion attribute.
     schemaVersion = 0;
     const char *const pAttr = m_pCurrentXmlElement->Attribute("schemaVersion");
 
@@ -297,27 +306,15 @@ StatusCode XmlFileReader::ReadComponentFields(unsigned int &schemaVersion, Field
         catch (...) { schemaVersion = 0; }
     }
 
-    // Each child element is a field: its tag name and text content.
     for (TiXmlElement *pChild = m_pCurrentXmlElement->FirstChildElement();
          nullptr != pChild;
          pChild = pChild->NextSiblingElement())
     {
         const std::string tag(pChild->ValueStr());
         const std::string text(pChild->GetText() ? pChild->GetText() : "");
+        const FieldValueType type = FieldTypeFromAttributeString(pChild->Attribute("type"));
 
-        // Reconstruct raw bytes according to the known encoding for this tag.
-        std::vector<unsigned char> bytes;
-
-        switch (GetFieldEncoding(tag))
-        {
-            case UINT32: bytes = Uint32FromString(text.empty() ? "0" : text); break;
-            case UINT64: bytes = Uint64FromString(text.empty() ? "0" : text); break;
-            case CVEC:   bytes = CartesianVectorFromString(text);              break;
-            case TSTATE: bytes = TrackStateFromString(text);                   break;
-            case STRING: bytes = StringToBytes(text);                          break;
-        }
-
-        fields.SetRawBytes(tag, std::move(bytes));
+        fields.SetRawBytes(tag, FieldTextToBytes(type, text));
     }
 
     return STATUS_CODE_SUCCESS;
@@ -369,20 +366,16 @@ StatusCode XmlFileReader::ReadNextComponent([[maybe_unused]] const ContainerId e
 
     const std::string elementName(m_pCurrentXmlElement->ValueStr());
 
-    // Populate FieldMap.
     unsigned int schemaVersion = 0;
     FieldMap fields;
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->ReadComponentFields(schemaVersion, fields));
 
-    // Dispatch by element name. Unknown names are logged and skipped.
-    // Global header components
     if ("Metadata" == elementName)
         return this->ReadMetadata(fields);
 
     if ("SchemaRegistry" == elementName)
         return this->ReadSchemaRegistry(fields);
 
-    // Geometry components
     if ("SubDetector" == elementName)
     {
         this->ApplyMigrations(SUB_DETECTOR_COMPONENT, schemaVersion, fields);
@@ -409,7 +402,6 @@ StatusCode XmlFileReader::ReadNextComponent([[maybe_unused]] const ContainerId e
         return this->ReadConcentricGap(fields);
     }
 
-    // Event components
     if ("CaloHit" == elementName)
     {
         this->ApplyMigrations(CALO_HIT_COMPONENT, schemaVersion, fields);
@@ -436,18 +428,15 @@ StatusCode XmlFileReader::ReadNextComponent([[maybe_unused]] const ContainerId e
         return this->ReadEventInformation(fields);
     }
 
-    // Unknown element — skip with a warning.
     std::cout << "XmlFileReader: skipping unknown element <" << elementName << ">" << std::endl;
     return STATUS_CODE_SUCCESS;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-// FileReader dispatch entries
-//------------------------------------------------------------------------------------------------------------------------------------------
 
 StatusCode XmlFileReader::ReadNextGlobalHeaderComponent()
 {
-    // Guard: if we've moved past the header container, signal end.
+    // If we've moved past the header container, signal end.
     if (HEADER_CONTAINER != this->GetNextContainerId() && HEADER_CONTAINER == m_containerId)
     {
         m_containerId = UNKNOWN_CONTAINER;
@@ -471,8 +460,6 @@ StatusCode XmlFileReader::ReadNextEventComponent()
     return this->ReadNextComponent(EVENT_CONTAINER);
 }
 
-//------------------------------------------------------------------------------------------------------------------------------------------
-// Global header deserialisers
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 StatusCode XmlFileReader::ReadMetadata(const FieldMap &fields)
@@ -531,8 +518,6 @@ StatusCode XmlFileReader::ReadSchemaRegistry(const FieldMap &fields)
     return STATUS_CODE_SUCCESS;
 }
 
-//------------------------------------------------------------------------------------------------------------------------------------------
-// Geometry deserialisers — identical field names to BinaryFileReader
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 StatusCode XmlFileReader::ReadSubDetector(const FieldMap &fields)
@@ -704,8 +689,6 @@ StatusCode XmlFileReader::ReadConcentricGap(const FieldMap &fields)
     return STATUS_CODE_SUCCESS;
 }
 
-//------------------------------------------------------------------------------------------------------------------------------------------
-// Event deserialisers
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 StatusCode XmlFileReader::ReadCaloHit(const FieldMap &fields)

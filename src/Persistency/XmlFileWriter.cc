@@ -32,31 +32,32 @@ namespace
 //------------------------------------------------------------------------------------------------------------------------------------------
 // FieldMap -> XML text helpers
 //
-// The FieldMap stores everything as raw bytes using the same layout as
-// BinaryFileWriter. To emit human-readable XML we reinterpret those bytes
-// back into typed values. We dispatch on byte count, which is unambiguous
-// for the SDK field set:
-//   1  byte  -> uint8  (bool stored as 1-byte int)
-//   4  bytes -> uint32 (float, int, unsigned int, enum - stored as bit pattern)
-//   8  bytes -> uint64 (uintptr_t for addresses)
-//  12  bytes -> three floats (CartesianVector)
-//  24  bytes -> six floats (TrackState)
-//  4+N bytes -> length-prefixed string
+// Each field's FieldValueType (recorded by FieldMap::Set<T> from the C++ type
+// at the point of writing) is used to render its raw bytes as human-readable
+// text, and is also written out as a "type" attribute on the field element so
+// the reader can parse it back without needing to guess or maintain its own
+// per-tag type table. This is what keeps e.g. a float field from being
+// rendered as the decimal value of its bit pattern.
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-std::string Uint32ToString(const std::vector<unsigned char> &bytes)
+std::string FieldTypeToAttributeString(const FieldValueType type)
 {
-    uint32_t v = 0;
-    std::memcpy(&v, bytes.data(), sizeof(uint32_t));
-    return std::to_string(v);
+    switch (type)
+    {
+        case FieldValueType::FLOAT:            return "float";
+        case FieldValueType::INT32:            return "int32";
+        case FieldValueType::UINT32:           return "uint32";
+        case FieldValueType::UINT64:           return "uint64";
+        case FieldValueType::BOOL:             return "bool";
+        case FieldValueType::STRING:           return "string";
+        case FieldValueType::CARTESIAN_VECTOR: return "cvec";
+        case FieldValueType::TRACK_STATE:      return "tstate";
+        case FieldValueType::UNKNOWN:
+        default:                               return "unknown";
+    }
 }
 
-std::string Uint64ToString(const std::vector<unsigned char> &bytes)
-{
-    uint64_t v = 0;
-    std::memcpy(&v, bytes.data(), sizeof(uint64_t));
-    return std::to_string(v);
-}
+//------------------------------------------------------------------------------------------------------------------------------------------
 
 std::string CartesianVectorToString(const std::vector<unsigned char> &bytes)
 {
@@ -89,24 +90,54 @@ std::string StringFieldToString(const std::vector<unsigned char> &bytes)
     return std::string(reinterpret_cast<const char *>(bytes.data() + sizeof(uint32_t)), len);
 }
 
-std::string FieldBytesToString(const std::vector<unsigned char> &bytes)
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+/**
+ *  @brief  Render a field's raw bytes as text, dispatching on its recorded
+ *          FieldValueType rather than guessing from byte count. UNKNOWN falls
+ *          back to a defensive hex dump (should not occur for fields written
+ *          via FieldMap::Set<T>, which always records a concrete type).
+ */
+std::string FieldValueToString(const FieldValueType type, const std::vector<unsigned char> &bytes)
 {
-    switch (bytes.size())
+    switch (type)
     {
-        case 1:  { uint8_t v = 0; std::memcpy(&v, bytes.data(), 1); return std::to_string(v); }
-        case 4:  return Uint32ToString(bytes);
-        case 8:  return Uint64ToString(bytes);
-        case 12: return CartesianVectorToString(bytes);
-        case 24: return TrackStateToString(bytes);
+        case FieldValueType::FLOAT:
+        {
+            float v = 0.f;
+            std::memcpy(&v, bytes.data(), sizeof(float));
+            return TypeToStringPrecision(v);
+        }
+        case FieldValueType::INT32:
+        {
+            int32_t v = 0;
+            std::memcpy(&v, bytes.data(), sizeof(int32_t));
+            return std::to_string(v);
+        }
+        case FieldValueType::UINT32:
+        {
+            uint32_t v = 0;
+            std::memcpy(&v, bytes.data(), sizeof(uint32_t));
+            return std::to_string(v);
+        }
+        case FieldValueType::UINT64:
+        {
+            uint64_t v = 0;
+            std::memcpy(&v, bytes.data(), sizeof(uint64_t));
+            return std::to_string(v);
+        }
+        case FieldValueType::BOOL:
+        {
+            uint8_t v = 0;
+            std::memcpy(&v, bytes.data(), sizeof(uint8_t));
+            return std::to_string(v);
+        }
+        case FieldValueType::STRING:           return StringFieldToString(bytes);
+        case FieldValueType::CARTESIAN_VECTOR:  return CartesianVectorToString(bytes);
+        case FieldValueType::TRACK_STATE:       return TrackStateToString(bytes);
+        case FieldValueType::UNKNOWN:
         default:
         {
-            if (bytes.size() >= sizeof(uint32_t))
-            {
-                uint32_t len = 0;
-                std::memcpy(&len, bytes.data(), sizeof(uint32_t));
-                if (bytes.size() == sizeof(uint32_t) + len)
-                    return StringFieldToString(bytes);
-            }
             std::ostringstream oss;
             oss << std::hex;
             for (unsigned char b : bytes)
@@ -219,8 +250,11 @@ StatusCode XmlFileWriter::WriteComponent(const std::string &elementName,
 
     for (const auto &entry : fields.GetAllFields())
     {
+        const FieldValueType type = fields.GetFieldType(entry.first);
+
         TiXmlElement *const pFieldElement = new TiXmlElement(entry.first);
-        pFieldElement->LinkEndChild(new TiXmlText(FieldBytesToString(entry.second)));
+        pFieldElement->SetAttribute("type", FieldTypeToAttributeString(type));
+        pFieldElement->LinkEndChild(new TiXmlText(FieldValueToString(type, entry.second)));
         pComponentElement->LinkEndChild(pFieldElement);
     }
 
