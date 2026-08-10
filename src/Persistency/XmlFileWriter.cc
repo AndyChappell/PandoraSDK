@@ -312,7 +312,7 @@ StatusCode XmlFileWriter::WriteSchemaRegistry()
     FieldMap fields;
 
     for (const ComponentSchemaVersion &entry : m_schemaRegistry)
-        fields.Set(std::to_string(static_cast<uint32_t>(entry.m_componentId)), entry.m_schemaVersion);
+        fields.Set("component_" + std::to_string(static_cast<uint32_t>(entry.m_componentId)), entry.m_schemaVersion);
 
     return this->WriteComponent("SchemaRegistry", 0u, fields);
 }

@@ -169,6 +169,7 @@ XmlFileReader::XmlFileReader(const pandora::Pandora &pandora, const std::string 
         delete m_pXmlDocument;
         throw StatusCodeException(STATUS_CODE_FAILURE);
     }
+    std::cout << "Reading XML file: " << fileName << std::endl;
 
     // Seed the container cursor at the root element's first child so that GetNextContainerId() works correctly before the first
     // GoToNextContainer.
@@ -496,12 +497,16 @@ StatusCode XmlFileReader::ReadSchemaRegistry(const FieldMap &fields)
         return STATUS_CODE_FAILURE;
 
     m_schemaRegistry.clear();
+    const std::string prefix("component_");
 
     for (const auto &entry : fields.GetAllFields())
     {
+        if (entry.first.size() <= prefix.size() || entry.first.substr(0, prefix.size()) != prefix)
+            continue;
+
         try
         {
-            const unsigned int componentIdVal = static_cast<unsigned int>(std::stoul(entry.first));
+            const unsigned int componentIdVal = static_cast<unsigned int>(std::stoul(entry.first.substr(prefix.size())));
             unsigned int schemaVersion = 0;
 
             if (STATUS_CODE_SUCCESS == fields.Get(entry.first, schemaVersion))
@@ -512,7 +517,9 @@ StatusCode XmlFileReader::ReadSchemaRegistry(const FieldMap &fields)
                 m_schemaRegistry.push_back(csv);
             }
         }
-        catch (const std::invalid_argument &) { /* non-numeric tag, skip */ }
+        catch (const std::invalid_argument &) { /* non-numeric suffix, skip */ }
+
+
     }
 
     return STATUS_CODE_SUCCESS;
