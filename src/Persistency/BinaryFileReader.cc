@@ -129,6 +129,7 @@ ContainerId BinaryFileReader::GetNextContainerId()
 StatusCode BinaryFileReader::GoToGeometry(const unsigned int geometryNumber)
 {
     int nGeometriesRead(0);
+    m_fileStream.clear();
     m_fileStream.seekg(0, std::ios::beg);
 
     if (!m_fileStream.good())
@@ -151,6 +152,7 @@ StatusCode BinaryFileReader::GoToGeometry(const unsigned int geometryNumber)
 StatusCode BinaryFileReader::GoToEvent(const unsigned int eventNumber)
 {
     int nEventsRead(0);
+    m_fileStream.clear();
     m_fileStream.seekg(0, std::ios::beg);
 
     if (!m_fileStream.good())

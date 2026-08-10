@@ -131,7 +131,11 @@ template <>
 inline StatusCode BinaryFileReader::ReadVariable(std::string &t)
 {
     uint32_t stringSize = 0;
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->ReadVariable(stringSize));
+    const StatusCode sizeStatusCode(this->ReadVariable(stringSize));
+
+    if (STATUS_CODE_SUCCESS != sizeStatusCode)
+        return sizeStatusCode;
+
     char *const pMemBlock = new char[stringSize];
     m_fileStream.read(pMemBlock, stringSize);
     t = std::string(pMemBlock, stringSize);
