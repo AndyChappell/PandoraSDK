@@ -91,10 +91,13 @@ StatusCode BinaryFileWriter::WriteFooter()
     if ((HEADER_CONTAINER != m_containerId) && (EVENT_CONTAINER != m_containerId) && (GEOMETRY_CONTAINER != m_containerId))
         return STATUS_CODE_FAILURE;
 
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=,
-        this->WriteVariable((HEADER_CONTAINER == m_containerId) ? HEADER_END_COMPONENT
-                : (EVENT_CONTAINER   == m_containerId)          ? EVENT_END_COMPONENT
-                                                                : GEOMETRY_END_COMPONENT));
+    const ComponentId endComponentId =
+        (HEADER_CONTAINER == m_containerId) ? HEADER_END_COMPONENT
+      : (EVENT_CONTAINER  == m_containerId) ? EVENT_END_COMPONENT
+                                             : GEOMETRY_END_COMPONENT;
+
+    const FieldMap emptyFields;
+    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteComponent(endComponentId, 0u, emptyFields));
 
     m_containerId = UNKNOWN_CONTAINER;
 

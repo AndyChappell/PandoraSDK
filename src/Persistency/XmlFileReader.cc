@@ -361,6 +361,9 @@ StatusCode XmlFileReader::ReadNextComponent([[maybe_unused]] const ContainerId e
     // No more siblings — end of container.
     if (!m_pCurrentXmlElement)
     {
+        if (m_pContainerXmlNode)
+            m_pContainerXmlNode = m_pContainerXmlNode->NextSibling();
+
         m_containerId = UNKNOWN_CONTAINER;
         return STATUS_CODE_NOT_FOUND;
     }
