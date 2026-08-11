@@ -30,9 +30,6 @@ FileReader::~FileReader()
 
 StatusCode FileReader::ReadGlobalHeader()
 {
-    // If no header container is present (geometry/event-only file written by
-    // old code), seek fails gracefully: we log and return success so the
-    // caller can proceed to ReadGeometry / ReadEvent with default metadata.
     if (HEADER_CONTAINER != this->GetNextContainerId())
     {
         const StatusCode seekSc = this->GoToGlobalHeader();
@@ -57,8 +54,7 @@ StatusCode FileReader::ReadGlobalHeader()
     }
     catch (StatusCodeException &statusCodeException)
     {
-        std::cout << "FileReader::ReadGlobalHeader() encountered unrecognized component: "
-                  << statusCodeException.ToString() << std::endl;
+        std::cout << "FileReader::ReadGlobalHeader() encountered unrecognized component: " << statusCodeException.ToString() << std::endl;
     }
 
     m_containerId = UNKNOWN_CONTAINER;
@@ -87,8 +83,7 @@ StatusCode FileReader::ReadGeometry()
     }
     catch (StatusCodeException &statusCodeException)
     {
-        std::cout << "FileReader::ReadGeometry() encountered unrecognized object in file: "
-                  << statusCodeException.ToString() << std::endl;
+        std::cout << "FileReader::ReadGeometry() encountered unrecognized object in file: " << statusCodeException.ToString() << std::endl;
     }
 
     m_containerId = UNKNOWN_CONTAINER;
@@ -114,8 +109,7 @@ StatusCode FileReader::ReadEvent()
     }
     catch (StatusCodeException &statusCodeException)
     {
-        std::cout << "FileReader::ReadEvent() encountered unrecognized object in file: "
-                  << statusCodeException.ToString() << std::endl;
+        std::cout << "FileReader::ReadEvent() encountered unrecognized object in file: " << statusCodeException.ToString() << std::endl;
     }
 
     m_containerId = UNKNOWN_CONTAINER;

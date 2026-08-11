@@ -42,8 +42,6 @@ FileWriter::~FileWriter()
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-//------------------------------------------------------------------------------------------------------------------------------------------
-
 StatusCode FileWriter::WriteGeometry()
 {
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteHeader(GEOMETRY_CONTAINER));
@@ -79,9 +77,6 @@ StatusCode FileWriter::WriteEvent(const CaloHitList &caloHitList, const TrackLis
     if (writeTrackRelationships)
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteTrackRelationships(trackList));
 
-    // gate is removed. In the new format every event carries run/subrun/event numbers as a
-    // tagged-field component, so callers that previously relied on absence of this component
-    // will simply read zeros via FieldMap::GetOrDefault when the component is present.
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteEventInformation());
 
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteFooter());
@@ -89,8 +84,6 @@ StatusCode FileWriter::WriteEvent(const CaloHitList &caloHitList, const TrackLis
     return STATUS_CODE_SUCCESS;
 }
 
-//------------------------------------------------------------------------------------------------------------------------------------------
-// Private list-iteration helpers — all unchanged from original
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 StatusCode FileWriter::WriteSubDetectorList()
@@ -283,13 +276,6 @@ StatusCode FileWriter::WriteTrackRelationships(const Track *const pTrack)
     return STATUS_CODE_SUCCESS;
 }
 
-//------------------------------------------------------------------------------------------------------------------------------------------
-// Schema version table
-//
-// Single source of truth for every concrete FileWriter (binary, XML, and any
-// future format). Increment a value here (and register a corresponding reader
-// migration in BinaryFileReader/XmlFileReader) when a field is removed or its
-// semantics change. Adding a new optional field does not need a bump.
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 unsigned int FileWriter::GetSchemaVersion(const ComponentId componentId)

@@ -22,7 +22,7 @@ class PandoraObjectFactory : public ObjectFactory<PARAMETERS, OBJECT>
 {
 public:
     typedef PARAMETERS Parameters;
-    typedef OBJECT     Object;
+    typedef OBJECT Object;
 
     Parameters *NewParameters() const;
     StatusCode Read(Parameters &parameters, const FieldMap &fields) const;

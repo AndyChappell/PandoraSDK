@@ -130,9 +130,30 @@ struct FileMetadata
 class StopProcessingException
 {
 public:
+    /**
+     *  @brief  Constructor
+     *
+     *  @param  description the description of the context under which exception was raised
+     */
     StopProcessingException(const std::string &description);
+
+    /**
+     *  @brief  Copy constructor
+     *
+     *  @param  rhs the instance to copy
+     */
     StopProcessingException(const StopProcessingException &rhs);
+
+    /**
+     *  @brief  Destructor
+     */
     ~StopProcessingException();
+
+    /**
+     *  @brief  Get the description of the context under which exception was raised
+     *
+     *  @return the description
+     */
     const std::string &GetDescription() const;
 
 private:
@@ -142,12 +163,24 @@ private:
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 inline StopProcessingException::StopProcessingException(const std::string &description) :
-    m_description(description) {}
+    m_description(description)
+{
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
 
 inline StopProcessingException::StopProcessingException(const StopProcessingException &rhs) :
-    m_description(rhs.GetDescription()) {}
+    m_description(rhs.GetDescription())
+{
+}
 
-inline StopProcessingException::~StopProcessingException() {}
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+inline StopProcessingException::~StopProcessingException()
+{
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
 
 inline const std::string &StopProcessingException::GetDescription() const
 {

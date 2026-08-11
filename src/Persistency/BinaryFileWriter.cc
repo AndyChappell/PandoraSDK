@@ -25,8 +25,6 @@ namespace pandora
 {
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-// Constructor / destructor
-//------------------------------------------------------------------------------------------------------------------------------------------
 
 BinaryFileWriter::BinaryFileWriter(const pandora::Pandora &pandora, const std::string &fileName, const FileMode fileMode) :
     FileWriter(pandora, fileName),
@@ -55,8 +53,7 @@ BinaryFileWriter::BinaryFileWriter(const pandora::Pandora &pandora, const std::s
 
     m_containerPosition = m_fileStream.tellp();
 
-    // Schema version table lives once, in FileWriter (see FileWriter::GetSchemaVersion),
-    // so binary and XML writers cannot drift apart.
+    // Schema version table lives once, in FileWriter (see FileWriter::GetSchemaVersion), so binary and XML writers cannot drift apart.
     this->PopulateSchemaRegistry();
 }
 
@@ -67,8 +64,6 @@ BinaryFileWriter::~BinaryFileWriter()
     m_fileStream.close();
 }
 
-//------------------------------------------------------------------------------------------------------------------------------------------
-// Container framing — structurally identical to original
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 StatusCode BinaryFileWriter::WriteHeader(const ContainerId containerId)
@@ -81,6 +76,7 @@ StatusCode BinaryFileWriter::WriteHeader(const ContainerId containerId)
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteVariable(dummyContainerSize));
 
     m_containerId = containerId;
+
     return STATUS_CODE_SUCCESS;
 }
 
@@ -118,26 +114,13 @@ StatusCode BinaryFileWriter::WriteFooter()
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-// WriteComponent — the single place where FieldMap content hits the wire
-//
-// Wire layout per component:
-//   uint32  componentId
-//   uint32  schemaVersion
-//   uint32  numFields
-//   repeated numFields:
-//     uint16  tagLength
-//     char[]  tag  (tagLength bytes, no null terminator)
-//     uint32  dataLength
-//     byte[]  data (dataLength bytes)
-//   uint32  COMPONENT_END_MARKER (0xDEADBEEF)
-//------------------------------------------------------------------------------------------------------------------------------------------
 
 StatusCode BinaryFileWriter::WriteComponent(const ComponentId componentId, const unsigned int schemaVersion, const FieldMap &fields)
 {
     const auto &allFields = fields.GetAllFields();
 
-    const uint32_t cid      = static_cast<uint32_t>(componentId);
-    const uint32_t sver     = static_cast<uint32_t>(schemaVersion);
+    const uint32_t cid = static_cast<uint32_t>(componentId);
+    const uint32_t sver = static_cast<uint32_t>(schemaVersion);
     const uint32_t numFields = static_cast<uint32_t>(allFields.size());
 
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteVariable(cid));
@@ -146,7 +129,7 @@ StatusCode BinaryFileWriter::WriteComponent(const ComponentId componentId, const
 
     for (const auto &entry : allFields)
     {
-        const std::string &tag        = entry.first;
+        const std::string &tag = entry.first;
         const std::vector<unsigned char> &data = entry.second;
 
         if (tag.size() > std::numeric_limits<uint16_t>::max())
@@ -169,11 +152,10 @@ StatusCode BinaryFileWriter::WriteComponent(const ComponentId componentId, const
     }
 
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->WriteVariable(COMPONENT_END_MARKER));
+
     return STATUS_CODE_SUCCESS;
 }
 
-//------------------------------------------------------------------------------------------------------------------------------------------
-// Global header
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 StatusCode BinaryFileWriter::WriteGlobalHeader()
@@ -197,16 +179,12 @@ StatusCode BinaryFileWriter::WriteMetadata()
     if (HEADER_CONTAINER != m_containerId)
         return STATUS_CODE_FAILURE;
 
-    // Metadata is serialised as a tagged-field component so that future fields
-    // can be added without any format version bump.
     FieldMap fields;
-    fields.Set("producerName",        m_metadata.m_producerName);
-    fields.Set("producerVersion",     m_metadata.m_producerVersion);
-    fields.Set("creationTimestamp",   m_metadata.m_creationTimestamp);
-    fields.Set("description",         m_metadata.m_description);
+    fields.Set("producerName", m_metadata.m_producerName);
+    fields.Set("producerVersion", m_metadata.m_producerVersion);
+    fields.Set("creationTimestamp", m_metadata.m_creationTimestamp);
+    fields.Set("description", m_metadata.m_description);
 
-    // User parameters: serialised as alternating key/value strings with a
-    // "userParam:<key>" tag scheme so they are individually skippable.
     for (const auto &kv : m_metadata.m_userParameters)
         fields.Set(std::string("userParam:") + kv.first, kv.second);
 
@@ -222,9 +200,6 @@ StatusCode BinaryFileWriter::WriteSchemaRegistry()
     if (HEADER_CONTAINER != m_containerId)
         return STATUS_CODE_FAILURE;
 
-    // The registry is a flat list of (componentId, schemaVersion) pairs written
-    // as a single tagged-field block. The tag is the decimal string of the
-    // ComponentId so that the reader can parse it without an enum map.
     FieldMap fields;
 
     for (const ComponentSchemaVersion &entry : m_schemaRegistry)
@@ -239,8 +214,6 @@ StatusCode BinaryFileWriter::WriteSchemaRegistry()
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-// Geometry components
-//------------------------------------------------------------------------------------------------------------------------------------------
 
 StatusCode BinaryFileWriter::WriteSubDetector(const SubDetector *const pSubDetector)
 {
@@ -250,17 +223,17 @@ StatusCode BinaryFileWriter::WriteSubDetector(const SubDetector *const pSubDetec
     FieldMap fields;
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pSubDetectorFactory->Write(pSubDetector, fields));
 
-    fields.Set("subDetectorName",      pSubDetector->GetSubDetectorName());
-    fields.Set("subDetectorType",      pSubDetector->GetSubDetectorType());
-    fields.Set("innerRCoordinate",     pSubDetector->GetInnerRCoordinate());
-    fields.Set("innerZCoordinate",     pSubDetector->GetInnerZCoordinate());
-    fields.Set("innerPhiCoordinate",   pSubDetector->GetInnerPhiCoordinate());
-    fields.Set("innerSymmetryOrder",   pSubDetector->GetInnerSymmetryOrder());
-    fields.Set("outerRCoordinate",     pSubDetector->GetOuterRCoordinate());
-    fields.Set("outerZCoordinate",     pSubDetector->GetOuterZCoordinate());
-    fields.Set("outerPhiCoordinate",   pSubDetector->GetOuterPhiCoordinate());
-    fields.Set("outerSymmetryOrder",   pSubDetector->GetOuterSymmetryOrder());
-    fields.Set("isMirroredInZ",        pSubDetector->IsMirroredInZ());
+    fields.Set("subDetectorName", pSubDetector->GetSubDetectorName());
+    fields.Set("subDetectorType", pSubDetector->GetSubDetectorType());
+    fields.Set("innerRCoordinate", pSubDetector->GetInnerRCoordinate());
+    fields.Set("innerZCoordinate", pSubDetector->GetInnerZCoordinate());
+    fields.Set("innerPhiCoordinate", pSubDetector->GetInnerPhiCoordinate());
+    fields.Set("innerSymmetryOrder", pSubDetector->GetInnerSymmetryOrder());
+    fields.Set("outerRCoordinate", pSubDetector->GetOuterRCoordinate());
+    fields.Set("outerZCoordinate", pSubDetector->GetOuterZCoordinate());
+    fields.Set("outerPhiCoordinate", pSubDetector->GetOuterPhiCoordinate());
+    fields.Set("outerSymmetryOrder", pSubDetector->GetOuterSymmetryOrder());
+    fields.Set("isMirroredInZ", pSubDetector->IsMirroredInZ());
 
     const SubDetector::SubDetectorLayerVector &layers(pSubDetector->GetSubDetectorLayerVector());
     const unsigned int nLayers = static_cast<unsigned int>(layers.size());
@@ -274,9 +247,9 @@ StatusCode BinaryFileWriter::WriteSubDetector(const SubDetector *const pSubDetec
     for (unsigned int i = 0; i < nLayers; ++i)
     {
         const std::string prefix("layer" + std::to_string(i) + "_");
-        fields.Set(prefix + "closestDistanceToIp",  layers[i].GetClosestDistanceToIp());
-        fields.Set(prefix + "nRadiationLengths",    layers[i].GetNRadiationLengths());
-        fields.Set(prefix + "nInteractionLengths",  layers[i].GetNInteractionLengths());
+        fields.Set(prefix + "closestDistanceToIp", layers[i].GetClosestDistanceToIp());
+        fields.Set(prefix + "nRadiationLengths", layers[i].GetNRadiationLengths());
+        fields.Set(prefix + "nInteractionLengths", layers[i].GetNInteractionLengths());
     }
 
     return this->WriteComponent(SUB_DETECTOR_COMPONENT, GetSchemaVersion(SUB_DETECTOR_COMPONENT), fields);
@@ -292,20 +265,20 @@ StatusCode BinaryFileWriter::WriteLArTPC(const LArTPC *const pLArTPC)
     FieldMap fields;
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pLArTPCFactory->Write(pLArTPC, fields));
 
-    fields.Set("larTPCVolumeId",     pLArTPC->GetLArTPCVolumeId());
-    fields.Set("centerX",            pLArTPC->GetCenterX());
-    fields.Set("centerY",            pLArTPC->GetCenterY());
-    fields.Set("centerZ",            pLArTPC->GetCenterZ());
-    fields.Set("widthX",             pLArTPC->GetWidthX());
-    fields.Set("widthY",             pLArTPC->GetWidthY());
-    fields.Set("widthZ",             pLArTPC->GetWidthZ());
-    fields.Set("wirePitchU",         pLArTPC->GetWirePitchU());
-    fields.Set("wirePitchV",         pLArTPC->GetWirePitchV());
-    fields.Set("wirePitchW",         pLArTPC->GetWirePitchW());
-    fields.Set("wireAngleU",         pLArTPC->GetWireAngleU());
-    fields.Set("wireAngleV",         pLArTPC->GetWireAngleV());
-    fields.Set("wireAngleW",         pLArTPC->GetWireAngleW());
-    fields.Set("sigmaUVW",           pLArTPC->GetSigmaUVW());
+    fields.Set("larTPCVolumeId", pLArTPC->GetLArTPCVolumeId());
+    fields.Set("centerX", pLArTPC->GetCenterX());
+    fields.Set("centerY", pLArTPC->GetCenterY());
+    fields.Set("centerZ", pLArTPC->GetCenterZ());
+    fields.Set("widthX", pLArTPC->GetWidthX());
+    fields.Set("widthY", pLArTPC->GetWidthY());
+    fields.Set("widthZ", pLArTPC->GetWidthZ());
+    fields.Set("wirePitchU", pLArTPC->GetWirePitchU());
+    fields.Set("wirePitchV", pLArTPC->GetWirePitchV());
+    fields.Set("wirePitchW", pLArTPC->GetWirePitchW());
+    fields.Set("wireAngleU", pLArTPC->GetWireAngleU());
+    fields.Set("wireAngleV", pLArTPC->GetWireAngleV());
+    fields.Set("wireAngleW", pLArTPC->GetWireAngleW());
+    fields.Set("sigmaUVW", pLArTPC->GetSigmaUVW());
     fields.Set("isDriftInPositiveX", pLArTPC->IsDriftInPositiveX());
 
     return this->WriteComponent(LAR_TPC_COMPONENT, GetSchemaVersion(LAR_TPC_COMPONENT), fields);
@@ -318,9 +291,9 @@ StatusCode BinaryFileWriter::WriteDetectorGap(const DetectorGap *const pDetector
     if (GEOMETRY_CONTAINER != m_containerId)
         return STATUS_CODE_FAILURE;
 
-    const LineGap      *const pLineGap      = dynamic_cast<const LineGap *>(pDetectorGap);
-    const BoxGap       *const pBoxGap       = dynamic_cast<const BoxGap *>(pDetectorGap);
-    const ConcentricGap*const pConcentricGap= dynamic_cast<const ConcentricGap *>(pDetectorGap);
+    const LineGap *const pLineGap = dynamic_cast<const LineGap *>(pDetectorGap);
+    const BoxGap *const pBoxGap = dynamic_cast<const BoxGap *>(pDetectorGap);
+    const ConcentricGap *const pConcentricGap = dynamic_cast<const ConcentricGap *>(pDetectorGap);
 
     if (nullptr != pLineGap)
     {
@@ -328,10 +301,10 @@ StatusCode BinaryFileWriter::WriteDetectorGap(const DetectorGap *const pDetector
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pLineGapFactory->Write(pLineGap, fields));
 
         fields.Set("lineGapType", pLineGap->GetLineGapType());
-        fields.Set("lineStartX",  pLineGap->GetLineStartX());
-        fields.Set("lineEndX",    pLineGap->GetLineEndX());
-        fields.Set("lineStartZ",  pLineGap->GetLineStartZ());
-        fields.Set("lineEndZ",    pLineGap->GetLineEndZ());
+        fields.Set("lineStartX", pLineGap->GetLineStartX());
+        fields.Set("lineEndX", pLineGap->GetLineEndX());
+        fields.Set("lineStartZ", pLineGap->GetLineStartZ());
+        fields.Set("lineEndZ", pLineGap->GetLineEndZ());
 
         return this->WriteComponent(LINE_GAP_COMPONENT, GetSchemaVersion(LINE_GAP_COMPONENT), fields);
     }
@@ -341,9 +314,9 @@ StatusCode BinaryFileWriter::WriteDetectorGap(const DetectorGap *const pDetector
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pBoxGapFactory->Write(pBoxGap, fields));
 
         fields.Set("vertex", pBoxGap->GetVertex());
-        fields.Set("side1",  pBoxGap->GetSide1());
-        fields.Set("side2",  pBoxGap->GetSide2());
-        fields.Set("side3",  pBoxGap->GetSide3());
+        fields.Set("side1", pBoxGap->GetSide1());
+        fields.Set("side2", pBoxGap->GetSide2());
+        fields.Set("side3", pBoxGap->GetSide3());
 
         return this->WriteComponent(BOX_GAP_COMPONENT, GetSchemaVersion(BOX_GAP_COMPONENT), fields);
     }
@@ -352,14 +325,14 @@ StatusCode BinaryFileWriter::WriteDetectorGap(const DetectorGap *const pDetector
         FieldMap fields;
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pConcentricGapFactory->Write(pConcentricGap, fields));
 
-        fields.Set("minZCoordinate",    pConcentricGap->GetMinZCoordinate());
-        fields.Set("maxZCoordinate",    pConcentricGap->GetMaxZCoordinate());
-        fields.Set("innerRCoordinate",  pConcentricGap->GetInnerRCoordinate());
-        fields.Set("innerPhiCoordinate",pConcentricGap->GetInnerPhiCoordinate());
-        fields.Set("innerSymmetryOrder",pConcentricGap->GetInnerSymmetryOrder());
-        fields.Set("outerRCoordinate",  pConcentricGap->GetOuterRCoordinate());
-        fields.Set("outerPhiCoordinate",pConcentricGap->GetOuterPhiCoordinate());
-        fields.Set("outerSymmetryOrder",pConcentricGap->GetOuterSymmetryOrder());
+        fields.Set("minZCoordinate", pConcentricGap->GetMinZCoordinate());
+        fields.Set("maxZCoordinate", pConcentricGap->GetMaxZCoordinate());
+        fields.Set("innerRCoordinate", pConcentricGap->GetInnerRCoordinate());
+        fields.Set("innerPhiCoordinate", pConcentricGap->GetInnerPhiCoordinate());
+        fields.Set("innerSymmetryOrder", pConcentricGap->GetInnerSymmetryOrder());
+        fields.Set("outerRCoordinate", pConcentricGap->GetOuterRCoordinate());
+        fields.Set("outerPhiCoordinate", pConcentricGap->GetOuterPhiCoordinate());
+        fields.Set("outerSymmetryOrder", pConcentricGap->GetOuterSymmetryOrder());
 
         return this->WriteComponent(CONCENTRIC_GAP_COMPONENT, GetSchemaVersion(CONCENTRIC_GAP_COMPONENT), fields);
     }
@@ -367,8 +340,6 @@ StatusCode BinaryFileWriter::WriteDetectorGap(const DetectorGap *const pDetector
     return STATUS_CODE_FAILURE;
 }
 
-//------------------------------------------------------------------------------------------------------------------------------------------
-// Event components
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 StatusCode BinaryFileWriter::WriteCaloHit(const CaloHit *const pCaloHit)
@@ -379,26 +350,26 @@ StatusCode BinaryFileWriter::WriteCaloHit(const CaloHit *const pCaloHit)
     FieldMap fields;
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pCaloHitFactory->Write(pCaloHit, fields));
 
-    fields.Set("cellGeometry",            pCaloHit->GetCellGeometry());
-    fields.Set("positionVector",          pCaloHit->GetPositionVector());
-    fields.Set("expectedDirection",       pCaloHit->GetExpectedDirection());
-    fields.Set("cellNormalVector",        pCaloHit->GetCellNormalVector());
-    fields.Set("cellThickness",           pCaloHit->GetCellThickness());
-    fields.Set("nCellRadiationLengths",   pCaloHit->GetNCellRadiationLengths());
+    fields.Set("cellGeometry", pCaloHit->GetCellGeometry());
+    fields.Set("positionVector", pCaloHit->GetPositionVector());
+    fields.Set("expectedDirection", pCaloHit->GetExpectedDirection());
+    fields.Set("cellNormalVector", pCaloHit->GetCellNormalVector());
+    fields.Set("cellThickness", pCaloHit->GetCellThickness());
+    fields.Set("nCellRadiationLengths", pCaloHit->GetNCellRadiationLengths());
     fields.Set("nCellInteractionLengths", pCaloHit->GetNCellInteractionLengths());
-    fields.Set("time",                    pCaloHit->GetTime());
-    fields.Set("inputEnergy",             pCaloHit->GetInputEnergy());
-    fields.Set("mipEquivalentEnergy",     pCaloHit->GetMipEquivalentEnergy());
-    fields.Set("electromagneticEnergy",   pCaloHit->GetElectromagneticEnergy());
-    fields.Set("hadronicEnergy",          pCaloHit->GetHadronicEnergy());
-    fields.Set("isDigital",               pCaloHit->IsDigital());
-    fields.Set("hitType",                 pCaloHit->GetHitType());
-    fields.Set("hitRegion",               pCaloHit->GetHitRegion());
-    fields.Set("layer",                   pCaloHit->GetLayer());
-    fields.Set("isInOuterSamplingLayer",  pCaloHit->IsInOuterSamplingLayer());
-    fields.Set("parentAddress",           pCaloHit->GetParentAddress());
-    fields.Set("cellSize0",               pCaloHit->GetCellSize0());
-    fields.Set("cellSize1",               pCaloHit->GetCellSize1());
+    fields.Set("time", pCaloHit->GetTime());
+    fields.Set("inputEnergy", pCaloHit->GetInputEnergy());
+    fields.Set("mipEquivalentEnergy", pCaloHit->GetMipEquivalentEnergy());
+    fields.Set("electromagneticEnergy", pCaloHit->GetElectromagneticEnergy());
+    fields.Set("hadronicEnergy", pCaloHit->GetHadronicEnergy());
+    fields.Set("isDigital", pCaloHit->IsDigital());
+    fields.Set("hitType", pCaloHit->GetHitType());
+    fields.Set("hitRegion", pCaloHit->GetHitRegion());
+    fields.Set("layer", pCaloHit->GetLayer());
+    fields.Set("isInOuterSamplingLayer", pCaloHit->IsInOuterSamplingLayer());
+    fields.Set("parentAddress", pCaloHit->GetParentAddress());
+    fields.Set("cellSize0", pCaloHit->GetCellSize0());
+    fields.Set("cellSize1", pCaloHit->GetCellSize1());
 
     return this->WriteComponent(CALO_HIT_COMPONENT, GetSchemaVersion(CALO_HIT_COMPONENT), fields);
 }
@@ -413,21 +384,21 @@ StatusCode BinaryFileWriter::WriteTrack(const Track *const pTrack)
     FieldMap fields;
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pTrackFactory->Write(pTrack, fields));
 
-    fields.Set("d0",                     pTrack->GetD0());
-    fields.Set("z0",                     pTrack->GetZ0());
-    fields.Set("particleId",             pTrack->GetParticleId());
-    fields.Set("charge",                 pTrack->GetCharge());
-    fields.Set("mass",                   pTrack->GetMass());
-    fields.Set("momentumAtDca",          pTrack->GetMomentumAtDca());
-    fields.Set("trackStateAtStart",      pTrack->GetTrackStateAtStart());
-    fields.Set("trackStateAtEnd",        pTrack->GetTrackStateAtEnd());
-    fields.Set("trackStateAtCalorimeter",pTrack->GetTrackStateAtCalorimeter());
-    fields.Set("timeAtCalorimeter",      pTrack->GetTimeAtCalorimeter());
-    fields.Set("reachesCalorimeter",     pTrack->ReachesCalorimeter());
-    fields.Set("isProjectedToEndCap",    pTrack->IsProjectedToEndCap());
-    fields.Set("canFormPfo",             pTrack->CanFormPfo());
-    fields.Set("canFormClusterlessPfo",  pTrack->CanFormClusterlessPfo());
-    fields.Set("parentAddress",          pTrack->GetParentAddress());
+    fields.Set("d0", pTrack->GetD0());
+    fields.Set("z0", pTrack->GetZ0());
+    fields.Set("particleId", pTrack->GetParticleId());
+    fields.Set("charge", pTrack->GetCharge());
+    fields.Set("mass", pTrack->GetMass());
+    fields.Set("momentumAtDca", pTrack->GetMomentumAtDca());
+    fields.Set("trackStateAtStart", pTrack->GetTrackStateAtStart());
+    fields.Set("trackStateAtEnd", pTrack->GetTrackStateAtEnd());
+    fields.Set("trackStateAtCalorimeter", pTrack->GetTrackStateAtCalorimeter());
+    fields.Set("timeAtCalorimeter", pTrack->GetTimeAtCalorimeter());
+    fields.Set("reachesCalorimeter", pTrack->ReachesCalorimeter());
+    fields.Set("isProjectedToEndCap", pTrack->IsProjectedToEndCap());
+    fields.Set("canFormPfo", pTrack->CanFormPfo());
+    fields.Set("canFormClusterlessPfo", pTrack->CanFormClusterlessPfo());
+    fields.Set("parentAddress", pTrack->GetParentAddress());
 
     return this->WriteComponent(TRACK_COMPONENT, GetSchemaVersion(TRACK_COMPONENT), fields);
 }
@@ -442,21 +413,21 @@ StatusCode BinaryFileWriter::WriteMCParticle(const MCParticle *const pMCParticle
     FieldMap fields;
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pMCParticleFactory->Write(pMCParticle, fields));
 
-    fields.Set("energy",          pMCParticle->GetEnergy());
-    fields.Set("momentum",        pMCParticle->GetMomentum());
-    fields.Set("vertex",          pMCParticle->GetVertex());
-    fields.Set("endpoint",        pMCParticle->GetEndpoint());
-    fields.Set("particleId",      pMCParticle->GetParticleId());
-    fields.Set("mcParticleType",  pMCParticle->GetMCParticleType());
-    fields.Set("uid",             pMCParticle->GetUid());
+    fields.Set("energy", pMCParticle->GetEnergy());
+    fields.Set("momentum", pMCParticle->GetMomentum());
+    fields.Set("vertex", pMCParticle->GetVertex());
+    fields.Set("endpoint", pMCParticle->GetEndpoint());
+    fields.Set("particleId", pMCParticle->GetParticleId());
+    fields.Set("mcParticleType", pMCParticle->GetMCParticleType());
+    fields.Set("uid", pMCParticle->GetUid());
 
     return this->WriteComponent(MC_PARTICLE_COMPONENT, GetSchemaVersion(MC_PARTICLE_COMPONENT), fields);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-StatusCode BinaryFileWriter::WriteRelationship(const RelationshipId relationshipId,
-    const void *address1, const void *address2, const float weight)
+StatusCode BinaryFileWriter::WriteRelationship(const RelationshipId relationshipId, const void *address1, const void *address2,
+    const float weight)
 {
     if (EVENT_CONTAINER != m_containerId)
         return STATUS_CODE_FAILURE;
@@ -465,9 +436,9 @@ StatusCode BinaryFileWriter::WriteRelationship(const RelationshipId relationship
     // consistency — the reader path is then uniform across all component types.
     FieldMap fields;
     fields.Set("relationshipId", static_cast<uint32_t>(relationshipId));
-    fields.Set("address1",       reinterpret_cast<uintptr_t>(address1));
-    fields.Set("address2",       reinterpret_cast<uintptr_t>(address2));
-    fields.Set("weight",         weight);
+    fields.Set("address1", reinterpret_cast<uintptr_t>(address1));
+    fields.Set("address2", reinterpret_cast<uintptr_t>(address2));
+    fields.Set("weight", weight);
 
     return this->WriteComponent(RELATIONSHIP_COMPONENT, GetSchemaVersion(RELATIONSHIP_COMPONENT), fields);
 }
@@ -480,7 +451,7 @@ StatusCode BinaryFileWriter::WriteEventInformation()
         return STATUS_CODE_FAILURE;
 
     FieldMap fields;
-    fields.Set("run",    m_pPandora->GetRun());
+    fields.Set("run", m_pPandora->GetRun());
     fields.Set("subrun", m_pPandora->GetSubrun());
     fields.Set("event",  m_pPandora->GetEvent());
 
