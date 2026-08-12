@@ -29,31 +29,29 @@ namespace pandora
 namespace
 {
 
-//------------------------------------------------------------------------------------------------------------------------------------------
-// FieldMap -> XML text helpers
-//
-// Each field's FieldValueType (recorded by FieldMap::Set<T> from the C++ type
-// at the point of writing) is used to render its raw bytes as human-readable
-// text, and is also written out as a "type" attribute on the field element so
-// the reader can parse it back without needing to guess or maintain its own
-// per-tag type table. This is what keeps e.g. a float field from being
-// rendered as the decimal value of its bit pattern.
-//------------------------------------------------------------------------------------------------------------------------------------------
-
 std::string FieldTypeToAttributeString(const FieldValueType type)
 {
     switch (type)
     {
-        case FieldValueType::FLOAT:            return "float";
-        case FieldValueType::INT32:            return "int32";
-        case FieldValueType::UINT32:           return "uint32";
-        case FieldValueType::UINT64:           return "uint64";
-        case FieldValueType::BOOL:             return "bool";
-        case FieldValueType::STRING:           return "string";
-        case FieldValueType::CARTESIAN_VECTOR: return "cvec";
-        case FieldValueType::TRACK_STATE:      return "tstate";
+        case FieldValueType::FLOAT:
+            return "float";
+        case FieldValueType::INT32:
+            return "int32";
+        case FieldValueType::UINT32:
+            return "uint32";
+        case FieldValueType::UINT64:
+            return "uint64";
+        case FieldValueType::BOOL:
+            return "bool";
+        case FieldValueType::STRING:
+            return "string";
+        case FieldValueType::CARTESIAN_VECTOR:
+            return "cvec";
+        case FieldValueType::TRACK_STATE:
+            return "tstate";
         case FieldValueType::UNKNOWN:
-        default:                               return "unknown";
+        default:
+            return "unknown";
     }
 }
 
@@ -68,6 +66,8 @@ std::string CartesianVectorToString(const std::vector<unsigned char> &bytes)
     return TypeToStringPrecision(x) + " " + TypeToStringPrecision(y) + " " + TypeToStringPrecision(z);
 }
 
+//------------------------------------------------------------------------------------------------------------------------------------------
+
 std::string TrackStateToString(const std::vector<unsigned char> &bytes)
 {
     float f[6] = {};
@@ -78,6 +78,8 @@ std::string TrackStateToString(const std::vector<unsigned char> &bytes)
         s += TypeToStringPrecision(f[i]) + (i < 5 ? " " : "");
     return s;
 }
+
+//------------------------------------------------------------------------------------------------------------------------------------------
 
 std::string StringFieldToString(const std::vector<unsigned char> &bytes)
 {
@@ -92,12 +94,6 @@ std::string StringFieldToString(const std::vector<unsigned char> &bytes)
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-/**
- *  @brief  Render a field's raw bytes as text, dispatching on its recorded
- *          FieldValueType rather than guessing from byte count. UNKNOWN falls
- *          back to a defensive hex dump (should not occur for fields written
- *          via FieldMap::Set<T>, which always records a concrete type).
- */
 std::string FieldValueToString(const FieldValueType type, const std::vector<unsigned char> &bytes)
 {
     switch (type)
@@ -132,9 +128,12 @@ std::string FieldValueToString(const FieldValueType type, const std::vector<unsi
             std::memcpy(&v, bytes.data(), sizeof(uint8_t));
             return std::to_string(v);
         }
-        case FieldValueType::STRING:           return StringFieldToString(bytes);
-        case FieldValueType::CARTESIAN_VECTOR:  return CartesianVectorToString(bytes);
-        case FieldValueType::TRACK_STATE:       return TrackStateToString(bytes);
+        case FieldValueType::STRING:
+            return StringFieldToString(bytes);
+        case FieldValueType::CARTESIAN_VECTOR:
+            return CartesianVectorToString(bytes);
+        case FieldValueType::TRACK_STATE:
+            return TrackStateToString(bytes);
         case FieldValueType::UNKNOWN:
         default:
         {
@@ -149,8 +148,6 @@ std::string FieldValueToString(const FieldValueType type, const std::vector<unsi
 
 } // anonymous namespace
 
-//------------------------------------------------------------------------------------------------------------------------------------------
-// Constructor / destructor
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 XmlFileWriter::XmlFileWriter(const pandora::Pandora &pandora, const std::string &fileName,
@@ -184,8 +181,6 @@ XmlFileWriter::XmlFileWriter(const pandora::Pandora &pandora, const std::string 
         throw StatusCodeException(STATUS_CODE_INVALID_PARAMETER);
     }
 
-    // Schema version table lives once, in FileWriter (see FileWriter::GetSchemaVersion),
-    // so binary and XML writers cannot drift apart.
     this->PopulateSchemaRegistry();
 }
 
@@ -198,15 +193,13 @@ XmlFileWriter::~XmlFileWriter()
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-// Container framing
-//------------------------------------------------------------------------------------------------------------------------------------------
 
 StatusCode XmlFileWriter::WriteHeader(const ContainerId containerId)
 {
     const std::string key(
-        (HEADER_CONTAINER   == containerId) ? "Header"   :
+        (HEADER_CONTAINER == containerId) ? "Header"   :
         (GEOMETRY_CONTAINER == containerId) ? "Geometry" :
-        (EVENT_CONTAINER    == containerId) ? "Event"    : "Unknown");
+        (EVENT_CONTAINER == containerId) ? "Event"    : "Unknown");
 
     TiXmlElement *const pRoot = m_pXmlDocument->RootElement();
 
@@ -224,19 +217,15 @@ StatusCode XmlFileWriter::WriteHeader(const ContainerId containerId)
 
 StatusCode XmlFileWriter::WriteFooter()
 {
-    if ((HEADER_CONTAINER   != m_containerId) &&
-        (EVENT_CONTAINER    != m_containerId) &&
-        (GEOMETRY_CONTAINER != m_containerId))
+    if ((HEADER_CONTAINER != m_containerId) && (EVENT_CONTAINER != m_containerId) && (GEOMETRY_CONTAINER != m_containerId))
         return STATUS_CODE_FAILURE;
 
     m_pContainerXmlElement = nullptr;
-    m_pCurrentXmlElement   = nullptr;
-    m_containerId          = UNKNOWN_CONTAINER;
+    m_pCurrentXmlElement = nullptr;
+    m_containerId = UNKNOWN_CONTAINER;
     return STATUS_CODE_SUCCESS;
 }
 
-//------------------------------------------------------------------------------------------------------------------------------------------
-// WriteComponent
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 StatusCode XmlFileWriter::WriteComponent(const std::string &elementName,
@@ -265,8 +254,6 @@ StatusCode XmlFileWriter::WriteComponent(const std::string &elementName,
     return STATUS_CODE_SUCCESS;
 }
 
-//------------------------------------------------------------------------------------------------------------------------------------------
-// Global header
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 StatusCode XmlFileWriter::WriteGlobalHeader()
@@ -318,8 +305,6 @@ StatusCode XmlFileWriter::WriteSchemaRegistry()
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-// Geometry components
-//------------------------------------------------------------------------------------------------------------------------------------------
 
 StatusCode XmlFileWriter::WriteSubDetector(const SubDetector *const pSubDetector)
 {
@@ -329,17 +314,17 @@ StatusCode XmlFileWriter::WriteSubDetector(const SubDetector *const pSubDetector
     FieldMap fields;
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pSubDetectorFactory->Write(pSubDetector, fields));
 
-    fields.Set("subDetectorName",      pSubDetector->GetSubDetectorName());
-    fields.Set("subDetectorType",      pSubDetector->GetSubDetectorType());
-    fields.Set("innerRCoordinate",     pSubDetector->GetInnerRCoordinate());
-    fields.Set("innerZCoordinate",     pSubDetector->GetInnerZCoordinate());
-    fields.Set("innerPhiCoordinate",   pSubDetector->GetInnerPhiCoordinate());
-    fields.Set("innerSymmetryOrder",   pSubDetector->GetInnerSymmetryOrder());
-    fields.Set("outerRCoordinate",     pSubDetector->GetOuterRCoordinate());
-    fields.Set("outerZCoordinate",     pSubDetector->GetOuterZCoordinate());
-    fields.Set("outerPhiCoordinate",   pSubDetector->GetOuterPhiCoordinate());
-    fields.Set("outerSymmetryOrder",   pSubDetector->GetOuterSymmetryOrder());
-    fields.Set("isMirroredInZ",        pSubDetector->IsMirroredInZ());
+    fields.Set("subDetectorName", pSubDetector->GetSubDetectorName());
+    fields.Set("subDetectorType", pSubDetector->GetSubDetectorType());
+    fields.Set("innerRCoordinate", pSubDetector->GetInnerRCoordinate());
+    fields.Set("innerZCoordinate", pSubDetector->GetInnerZCoordinate());
+    fields.Set("innerPhiCoordinate", pSubDetector->GetInnerPhiCoordinate());
+    fields.Set("innerSymmetryOrder", pSubDetector->GetInnerSymmetryOrder());
+    fields.Set("outerRCoordinate", pSubDetector->GetOuterRCoordinate());
+    fields.Set("outerZCoordinate", pSubDetector->GetOuterZCoordinate());
+    fields.Set("outerPhiCoordinate", pSubDetector->GetOuterPhiCoordinate());
+    fields.Set("outerSymmetryOrder", pSubDetector->GetOuterSymmetryOrder());
+    fields.Set("isMirroredInZ", pSubDetector->IsMirroredInZ());
 
     const SubDetector::SubDetectorLayerVector &layers(pSubDetector->GetSubDetectorLayerVector());
     const unsigned int nLayers = static_cast<unsigned int>(layers.size());
@@ -353,7 +338,7 @@ StatusCode XmlFileWriter::WriteSubDetector(const SubDetector *const pSubDetector
     {
         const std::string prefix("layer" + std::to_string(i) + "_");
         fields.Set(prefix + "closestDistanceToIp", layers[i].GetClosestDistanceToIp());
-        fields.Set(prefix + "nRadiationLengths",   layers[i].GetNRadiationLengths());
+        fields.Set(prefix + "nRadiationLengths", layers[i].GetNRadiationLengths());
         fields.Set(prefix + "nInteractionLengths", layers[i].GetNInteractionLengths());
     }
 
@@ -370,20 +355,20 @@ StatusCode XmlFileWriter::WriteLArTPC(const LArTPC *const pLArTPC)
     FieldMap fields;
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pLArTPCFactory->Write(pLArTPC, fields));
 
-    fields.Set("larTPCVolumeId",     pLArTPC->GetLArTPCVolumeId());
-    fields.Set("centerX",            pLArTPC->GetCenterX());
-    fields.Set("centerY",            pLArTPC->GetCenterY());
-    fields.Set("centerZ",            pLArTPC->GetCenterZ());
-    fields.Set("widthX",             pLArTPC->GetWidthX());
-    fields.Set("widthY",             pLArTPC->GetWidthY());
-    fields.Set("widthZ",             pLArTPC->GetWidthZ());
-    fields.Set("wirePitchU",         pLArTPC->GetWirePitchU());
-    fields.Set("wirePitchV",         pLArTPC->GetWirePitchV());
-    fields.Set("wirePitchW",         pLArTPC->GetWirePitchW());
-    fields.Set("wireAngleU",         pLArTPC->GetWireAngleU());
-    fields.Set("wireAngleV",         pLArTPC->GetWireAngleV());
-    fields.Set("wireAngleW",         pLArTPC->GetWireAngleW());
-    fields.Set("sigmaUVW",           pLArTPC->GetSigmaUVW());
+    fields.Set("larTPCVolumeId", pLArTPC->GetLArTPCVolumeId());
+    fields.Set("centerX", pLArTPC->GetCenterX());
+    fields.Set("centerY", pLArTPC->GetCenterY());
+    fields.Set("centerZ", pLArTPC->GetCenterZ());
+    fields.Set("widthX", pLArTPC->GetWidthX());
+    fields.Set("widthY", pLArTPC->GetWidthY());
+    fields.Set("widthZ", pLArTPC->GetWidthZ());
+    fields.Set("wirePitchU", pLArTPC->GetWirePitchU());
+    fields.Set("wirePitchV", pLArTPC->GetWirePitchV());
+    fields.Set("wirePitchW", pLArTPC->GetWirePitchW());
+    fields.Set("wireAngleU", pLArTPC->GetWireAngleU());
+    fields.Set("wireAngleV", pLArTPC->GetWireAngleV());
+    fields.Set("wireAngleW", pLArTPC->GetWireAngleW());
+    fields.Set("sigmaUVW", pLArTPC->GetSigmaUVW());
     fields.Set("isDriftInPositiveX", pLArTPC->IsDriftInPositiveX());
 
     return this->WriteComponent("LArTPC", GetSchemaVersion(LAR_TPC_COMPONENT), fields);
@@ -396,8 +381,8 @@ StatusCode XmlFileWriter::WriteDetectorGap(const DetectorGap *const pDetectorGap
     if (GEOMETRY_CONTAINER != m_containerId)
         return STATUS_CODE_FAILURE;
 
-    const LineGap       *const pLineGap       = dynamic_cast<const LineGap *>(pDetectorGap);
-    const BoxGap        *const pBoxGap        = dynamic_cast<const BoxGap *>(pDetectorGap);
+    const LineGap *const pLineGap = dynamic_cast<const LineGap *>(pDetectorGap);
+    const BoxGap *const pBoxGap = dynamic_cast<const BoxGap *>(pDetectorGap);
     const ConcentricGap *const pConcentricGap = dynamic_cast<const ConcentricGap *>(pDetectorGap);
 
     if (nullptr != pLineGap)
@@ -406,9 +391,9 @@ StatusCode XmlFileWriter::WriteDetectorGap(const DetectorGap *const pDetectorGap
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pLineGapFactory->Write(pLineGap, fields));
         fields.Set("lineGapType", pLineGap->GetLineGapType());
         fields.Set("lineStartX",  pLineGap->GetLineStartX());
-        fields.Set("lineEndX",    pLineGap->GetLineEndX());
-        fields.Set("lineStartZ",  pLineGap->GetLineStartZ());
-        fields.Set("lineEndZ",    pLineGap->GetLineEndZ());
+        fields.Set("lineEndX", pLineGap->GetLineEndX());
+        fields.Set("lineStartZ", pLineGap->GetLineStartZ());
+        fields.Set("lineEndZ", pLineGap->GetLineEndZ());
         return this->WriteComponent("LineGap", GetSchemaVersion(LINE_GAP_COMPONENT), fields);
     }
     else if (nullptr != pBoxGap)
@@ -416,21 +401,21 @@ StatusCode XmlFileWriter::WriteDetectorGap(const DetectorGap *const pDetectorGap
         FieldMap fields;
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pBoxGapFactory->Write(pBoxGap, fields));
         fields.Set("vertex", pBoxGap->GetVertex());
-        fields.Set("side1",  pBoxGap->GetSide1());
-        fields.Set("side2",  pBoxGap->GetSide2());
-        fields.Set("side3",  pBoxGap->GetSide3());
+        fields.Set("side1", pBoxGap->GetSide1());
+        fields.Set("side2", pBoxGap->GetSide2());
+        fields.Set("side3", pBoxGap->GetSide3());
         return this->WriteComponent("BoxGap", GetSchemaVersion(BOX_GAP_COMPONENT), fields);
     }
     else if (nullptr != pConcentricGap)
     {
         FieldMap fields;
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pConcentricGapFactory->Write(pConcentricGap, fields));
-        fields.Set("minZCoordinate",     pConcentricGap->GetMinZCoordinate());
-        fields.Set("maxZCoordinate",     pConcentricGap->GetMaxZCoordinate());
-        fields.Set("innerRCoordinate",   pConcentricGap->GetInnerRCoordinate());
+        fields.Set("minZCoordinate", pConcentricGap->GetMinZCoordinate());
+        fields.Set("maxZCoordinate", pConcentricGap->GetMaxZCoordinate());
+        fields.Set("innerRCoordinate", pConcentricGap->GetInnerRCoordinate());
         fields.Set("innerPhiCoordinate", pConcentricGap->GetInnerPhiCoordinate());
         fields.Set("innerSymmetryOrder", pConcentricGap->GetInnerSymmetryOrder());
-        fields.Set("outerRCoordinate",   pConcentricGap->GetOuterRCoordinate());
+        fields.Set("outerRCoordinate", pConcentricGap->GetOuterRCoordinate());
         fields.Set("outerPhiCoordinate", pConcentricGap->GetOuterPhiCoordinate());
         fields.Set("outerSymmetryOrder", pConcentricGap->GetOuterSymmetryOrder());
         return this->WriteComponent("ConcentricGap", GetSchemaVersion(CONCENTRIC_GAP_COMPONENT), fields);
@@ -439,8 +424,6 @@ StatusCode XmlFileWriter::WriteDetectorGap(const DetectorGap *const pDetectorGap
     return STATUS_CODE_FAILURE;
 }
 
-//------------------------------------------------------------------------------------------------------------------------------------------
-// Event components
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 StatusCode XmlFileWriter::WriteCaloHit(const CaloHit *const pCaloHit)
@@ -451,26 +434,26 @@ StatusCode XmlFileWriter::WriteCaloHit(const CaloHit *const pCaloHit)
     FieldMap fields;
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pCaloHitFactory->Write(pCaloHit, fields));
 
-    fields.Set("cellGeometry",            pCaloHit->GetCellGeometry());
-    fields.Set("positionVector",          pCaloHit->GetPositionVector());
-    fields.Set("expectedDirection",       pCaloHit->GetExpectedDirection());
-    fields.Set("cellNormalVector",        pCaloHit->GetCellNormalVector());
-    fields.Set("cellThickness",           pCaloHit->GetCellThickness());
-    fields.Set("nCellRadiationLengths",   pCaloHit->GetNCellRadiationLengths());
+    fields.Set("cellGeometry", pCaloHit->GetCellGeometry());
+    fields.Set("positionVector", pCaloHit->GetPositionVector());
+    fields.Set("expectedDirection", pCaloHit->GetExpectedDirection());
+    fields.Set("cellNormalVector", pCaloHit->GetCellNormalVector());
+    fields.Set("cellThickness", pCaloHit->GetCellThickness());
+    fields.Set("nCellRadiationLengths", pCaloHit->GetNCellRadiationLengths());
     fields.Set("nCellInteractionLengths", pCaloHit->GetNCellInteractionLengths());
-    fields.Set("time",                    pCaloHit->GetTime());
-    fields.Set("inputEnergy",             pCaloHit->GetInputEnergy());
-    fields.Set("mipEquivalentEnergy",     pCaloHit->GetMipEquivalentEnergy());
-    fields.Set("electromagneticEnergy",   pCaloHit->GetElectromagneticEnergy());
-    fields.Set("hadronicEnergy",          pCaloHit->GetHadronicEnergy());
-    fields.Set("isDigital",               pCaloHit->IsDigital());
-    fields.Set("hitType",                 pCaloHit->GetHitType());
-    fields.Set("hitRegion",               pCaloHit->GetHitRegion());
-    fields.Set("layer",                   pCaloHit->GetLayer());
-    fields.Set("isInOuterSamplingLayer",  pCaloHit->IsInOuterSamplingLayer());
-    fields.Set("parentAddress",           pCaloHit->GetParentAddress());
-    fields.Set("cellSize0",               pCaloHit->GetCellSize0());
-    fields.Set("cellSize1",               pCaloHit->GetCellSize1());
+    fields.Set("time", pCaloHit->GetTime());
+    fields.Set("inputEnergy", pCaloHit->GetInputEnergy());
+    fields.Set("mipEquivalentEnergy", pCaloHit->GetMipEquivalentEnergy());
+    fields.Set("electromagneticEnergy", pCaloHit->GetElectromagneticEnergy());
+    fields.Set("hadronicEnergy", pCaloHit->GetHadronicEnergy());
+    fields.Set("isDigital", pCaloHit->IsDigital());
+    fields.Set("hitType", pCaloHit->GetHitType());
+    fields.Set("hitRegion", pCaloHit->GetHitRegion());
+    fields.Set("layer", pCaloHit->GetLayer());
+    fields.Set("isInOuterSamplingLayer", pCaloHit->IsInOuterSamplingLayer());
+    fields.Set("parentAddress", pCaloHit->GetParentAddress());
+    fields.Set("cellSize0", pCaloHit->GetCellSize0());
+    fields.Set("cellSize1", pCaloHit->GetCellSize1());
 
     return this->WriteComponent("CaloHit", GetSchemaVersion(CALO_HIT_COMPONENT), fields);
 }
@@ -485,21 +468,21 @@ StatusCode XmlFileWriter::WriteTrack(const Track *const pTrack)
     FieldMap fields;
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pTrackFactory->Write(pTrack, fields));
 
-    fields.Set("d0",                      pTrack->GetD0());
-    fields.Set("z0",                      pTrack->GetZ0());
-    fields.Set("particleId",              pTrack->GetParticleId());
-    fields.Set("charge",                  pTrack->GetCharge());
-    fields.Set("mass",                    pTrack->GetMass());
-    fields.Set("momentumAtDca",           pTrack->GetMomentumAtDca());
-    fields.Set("trackStateAtStart",       pTrack->GetTrackStateAtStart());
-    fields.Set("trackStateAtEnd",         pTrack->GetTrackStateAtEnd());
+    fields.Set("d0", pTrack->GetD0());
+    fields.Set("z0", pTrack->GetZ0());
+    fields.Set("particleId", pTrack->GetParticleId());
+    fields.Set("charge", pTrack->GetCharge());
+    fields.Set("mass", pTrack->GetMass());
+    fields.Set("momentumAtDca", pTrack->GetMomentumAtDca());
+    fields.Set("trackStateAtStart", pTrack->GetTrackStateAtStart());
+    fields.Set("trackStateAtEnd", pTrack->GetTrackStateAtEnd());
     fields.Set("trackStateAtCalorimeter", pTrack->GetTrackStateAtCalorimeter());
-    fields.Set("timeAtCalorimeter",       pTrack->GetTimeAtCalorimeter());
-    fields.Set("reachesCalorimeter",      pTrack->ReachesCalorimeter());
-    fields.Set("isProjectedToEndCap",     pTrack->IsProjectedToEndCap());
-    fields.Set("canFormPfo",              pTrack->CanFormPfo());
-    fields.Set("canFormClusterlessPfo",   pTrack->CanFormClusterlessPfo());
-    fields.Set("parentAddress",           pTrack->GetParentAddress());
+    fields.Set("timeAtCalorimeter", pTrack->GetTimeAtCalorimeter());
+    fields.Set("reachesCalorimeter", pTrack->ReachesCalorimeter());
+    fields.Set("isProjectedToEndCap", pTrack->IsProjectedToEndCap());
+    fields.Set("canFormPfo", pTrack->CanFormPfo());
+    fields.Set("canFormClusterlessPfo", pTrack->CanFormClusterlessPfo());
+    fields.Set("parentAddress", pTrack->GetParentAddress());
 
     return this->WriteComponent("Track", GetSchemaVersion(TRACK_COMPONENT), fields);
 }
@@ -514,13 +497,13 @@ StatusCode XmlFileWriter::WriteMCParticle(const MCParticle *const pMCParticle)
     FieldMap fields;
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pMCParticleFactory->Write(pMCParticle, fields));
 
-    fields.Set("energy",         pMCParticle->GetEnergy());
-    fields.Set("momentum",       pMCParticle->GetMomentum());
-    fields.Set("vertex",         pMCParticle->GetVertex());
-    fields.Set("endpoint",       pMCParticle->GetEndpoint());
-    fields.Set("particleId",     pMCParticle->GetParticleId());
+    fields.Set("energy", pMCParticle->GetEnergy());
+    fields.Set("momentum", pMCParticle->GetMomentum());
+    fields.Set("vertex", pMCParticle->GetVertex());
+    fields.Set("endpoint", pMCParticle->GetEndpoint());
+    fields.Set("particleId", pMCParticle->GetParticleId());
     fields.Set("mcParticleType", pMCParticle->GetMCParticleType());
-    fields.Set("uid",            pMCParticle->GetUid());
+    fields.Set("uid", pMCParticle->GetUid());
 
     return this->WriteComponent("MCParticle", GetSchemaVersion(MC_PARTICLE_COMPONENT), fields);
 }
@@ -535,9 +518,9 @@ StatusCode XmlFileWriter::WriteRelationship(const RelationshipId relationshipId,
 
     FieldMap fields;
     fields.Set("relationshipId", static_cast<uint32_t>(relationshipId));
-    fields.Set("address1",       reinterpret_cast<uintptr_t>(address1));
-    fields.Set("address2",       reinterpret_cast<uintptr_t>(address2));
-    fields.Set("weight",         weight);
+    fields.Set("address1", reinterpret_cast<uintptr_t>(address1));
+    fields.Set("address2", reinterpret_cast<uintptr_t>(address2));
+    fields.Set("weight", weight);
 
     return this->WriteComponent("Relationship", GetSchemaVersion(RELATIONSHIP_COMPONENT), fields);
 }
@@ -550,9 +533,9 @@ StatusCode XmlFileWriter::WriteEventInformation()
         return STATUS_CODE_FAILURE;
 
     FieldMap fields;
-    fields.Set("run",    m_pPandora->GetRun());
+    fields.Set("run", m_pPandora->GetRun());
     fields.Set("subrun", m_pPandora->GetSubrun());
-    fields.Set("event",  m_pPandora->GetEvent());
+    fields.Set("event", m_pPandora->GetEvent());
 
     return this->WriteComponent("EventInfo", GetSchemaVersion(EVENT_INFO_COMPONENT), fields);
 }
