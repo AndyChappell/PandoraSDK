@@ -73,9 +73,7 @@ enum HitType
     TPC_3D,
     DRC_SCINT,
     DRC_CHEREN,
-    OPTICAL_SIPM,
-    OPTICAL_TRAP,
-    OPTICAL_TPC,
+    OPTICAL,
     HIT_CUSTOM
 };
 
